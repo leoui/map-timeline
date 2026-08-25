@@ -60,6 +60,45 @@ export function readFilterMode() {
   return (val('gps') || 'conservative');
 }
 
+/**
+ * Format a Unix-ms timestamp as a YYYY-MM-DD string (UTC) for <input type=date>.
+ * UTC matches how readDateRange() interprets the inputs (Date.parse of a bare
+ * date is UTC midnight), so the round-trip stays consistent.
+ * @param {number} ms
+ * @returns {string}
+ */
+function toDateInputValue(ms) {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
+/**
+ * Given the full available span of the loaded data, constrain the date inputs
+ * to it and default the selection to cover everything. Shows a hint line.
+ * @param {number} minMs
+ * @param {number} maxMs
+ */
+export function applyAvailableRange(minMs, maxMs) {
+  const startEl = document.getElementById('startDate');
+  const endEl   = document.getElementById('endDate');
+  const min = toDateInputValue(minMs);
+  const max = toDateInputValue(maxMs);
+
+  if (startEl) {
+    startEl.min = min; startEl.max = max; startEl.value = min;
+  }
+  if (endEl) {
+    endEl.min = min; endEl.max = max; endEl.value = max;
+  }
+
+  const hint = document.getElementById('dateHint');
+  if (hint) {
+    const fmt = (ms) => new Date(ms).toLocaleDateString(undefined,
+      { year: 'numeric', month: 'short', day: 'numeric' });
+    hint.textContent = `Data available from ${fmt(minMs)} to ${fmt(maxMs)}.`;
+    hint.style.display = 'block';
+  }
+}
+
 // ── UI state machine ──────────────────────────────────────────────────────────
 
 /** Show the journey configuration UI after a file is loaded. */

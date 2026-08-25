@@ -26,6 +26,17 @@ import * as controls from './ui/controls.js';
 /** @type {import('./types.js').LocationPoint[] | null} */
 let loadedPoints = null;
 
+/**
+ * All parsed points for the current file, across the full available span,
+ * before any date-range or GPS filtering. Date/GPS selection is derived from
+ * this so the user can re-slice without re-uploading.
+ * @type {import('./types.js').LocationPoint[] | null}
+ */
+let allRawPoints = null;
+
+/** Filename of the currently loaded data, for the file-info line. */
+let loadedFilename = '';
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 (async function init() {
@@ -58,10 +69,18 @@ let loadedPoints = null;
     if (dateRow) {
       dateRow.style.display = document.getElementById('exactDates').checked ? 'grid' : 'none';
     }
+    recomputeSelection();
   });
 
-  // Wire GPS filter hint
-  document.getElementById('gps')?.addEventListener('change', updateGpsHint);
+  // Re-slice the loaded data whenever the date range changes.
+  document.getElementById('startDate')?.addEventListener('change', recomputeSelection);
+  document.getElementById('endDate')?.addEventListener('change', recomputeSelection);
+
+  // Wire GPS filter hint + re-filter
+  document.getElementById('gps')?.addEventListener('change', () => {
+    updateGpsHint();
+    recomputeSelection();
+  });
 })();
 
 // ── File loading ──────────────────────────────────────────────────────────────
@@ -73,9 +92,10 @@ async function onFileChange(e) {
   try {
     const text = await file.text();
     const raw  = JSON.parse(text);
-    const { startMs, endMs } = controls.readDateRange();
-    const parsed = parseTimeline(raw, { startMs, endMs });
-    applyLoadedPoints(parsed, file.name);
+    // Parse the FULL span (no date filter) so we can show what's available and
+    // let the user re-slice without re-uploading.
+    const parsed = parseTimeline(raw);
+    setLoadedData(parsed, file.name);
   } catch (err) {
     showError(err.message);
   }
@@ -83,30 +103,64 @@ async function onFileChange(e) {
 
 function onLoadSample() {
   const pts = samplePoints();
-  applyLoadedPoints(pts, SAMPLE_META.filename);
+  setLoadedData(pts, SAMPLE_META.filename);
 
   const titleEl = document.getElementById('videoTitle');
   if (titleEl) titleEl.value = 'Fictional Sample Journey';
 }
 
-function applyLoadedPoints(points, filename) {
+/**
+ * Store a freshly parsed, unfiltered dataset, surface its available date span,
+ * and derive the initial selection.
+ * @param {import('./types.js').LocationPoint[]} points
+ * @param {string} filename
+ */
+function setLoadedData(points, filename) {
+  allRawPoints = points;
+  loadedFilename = filename;
+
+  // Points come back sorted from parseTimeline; guard anyway.
+  const minMs = points[0].timestampMs;
+  const maxMs = points[points.length - 1].timestampMs;
+  controls.applyAvailableRange(minMs, maxMs);
+
+  controls.showJourneyUI();
+  recomputeSelection();
+}
+
+/**
+ * Recompute loadedPoints from allRawPoints using the current date-range and
+ * GPS filter settings, and refresh the stats / file-info display.
+ */
+function recomputeSelection() {
+  if (!allRawPoints) return;
+
+  const { startMs, endMs } = controls.readDateRange();
+  const inRange = allRawPoints.filter(
+    (p) => p.timestampMs >= startMs && p.timestampMs <= endMs
+  );
+
   const mode = controls.readFilterMode();
-  const filtered = filterOutliers(points, mode);
+  const filtered = filterOutliers(inRange, mode);
   loadedPoints = filtered;
 
   const { count } = summarise(filtered);
   const distM = totalDistanceMetres(filtered);
   const { distanceUnit } = controls.readSettings();
-
   controls.updateStats(count, distM, distanceUnit);
 
   const fileInfo = document.getElementById('fileInfo');
   if (fileInfo) {
     fileInfo.style.display = 'block';
-    fileInfo.innerHTML = `<strong>${filename}</strong> · ${count.toLocaleString()} valid points`;
+    if (count < 2) {
+      fileInfo.innerHTML =
+        `<strong>${loadedFilename}</strong> · ${count.toLocaleString()} points in this date range ` +
+        `— widen the range to build a video.`;
+    } else {
+      fileInfo.innerHTML =
+        `<strong>${loadedFilename}</strong> · ${count.toLocaleString()} valid points`;
+    }
   }
-
-  controls.showJourneyUI();
 }
 
 // ── Preview ───────────────────────────────────────────────────────────────────
