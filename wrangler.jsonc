@@ -1,0 +1,14 @@
+{
+  // Cloudflare Workers static-assets deploy for this browser-only Vite app.
+  // No Worker script (no `main`): `wrangler deploy` just uploads ./dist as
+  // static assets, so it does NOT go through the Vite plugin path that
+  // requires Vite >= 6.
+  "name": "map-timeline",
+  "compatibility_date": "2026-08-25",
+  "assets": {
+    "directory": "./dist",
+    // Single index.html, no client-side router — serve it at the root and
+    // return the 404 asset for unknown paths (default behaviour is fine).
+    "not_found_handling": "404-page"
+  }
+}
