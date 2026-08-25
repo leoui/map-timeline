@@ -64,6 +64,25 @@ export function createCameraState(points, settings) {
 }
 
 /**
+ * The representative integer zoom the camera renders at for a given mode — used
+ * to prefetch the right tiles. For 'dynamic' this returns the base zoom; the
+ * mode fluctuates ±2 around it and any misses fall back to on-demand fetching.
+ *
+ * @param {CameraState} state
+ * @param {import('../types.js').VideoSettings} settings
+ * @returns {number}
+ */
+export function representativeZoom(state, settings) {
+  switch (settings.cameraMode) {
+    case 'fixed':   return state.globalZoom;
+    case 'steady':  return state.followZoom;
+    case 'closeup': return Math.min(17, state.followZoom + 1);
+    case 'dynamic': return state.dynamicBaseZoom;
+    default:        return state.globalZoom;
+  }
+}
+
+/**
  * @typedef {Object} CameraState
  * @property {number} globalZoom
  * @property {number} followZoom
