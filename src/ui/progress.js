@@ -95,7 +95,7 @@ export function bindToDOM({ labelEl, fillEl, statusEl }) {
   });
 
   on('encode:done', () => {
-    setLabel(labelEl, 'Encoding complete — writing MP4…');
+    setLabel(labelEl, 'Encoding complete, writing MP4…');
     setFill(fillEl, 90);
   });
 

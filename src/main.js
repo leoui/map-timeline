@@ -164,13 +164,29 @@ function recomputeSelection() {
     fileInfo.style.display = 'block';
     if (count < 2) {
       fileInfo.innerHTML =
-        `<strong>${loadedFilename}</strong> · ${count.toLocaleString()} points in this date range ` +
-        `— widen the range to build a video.`;
+        `<strong>${loadedFilename}</strong> · ${count.toLocaleString()} points in this date range. ` +
+        `Widen the range to build a video.`;
     } else {
       fileInfo.innerHTML =
         `<strong>${loadedFilename}</strong> · ${count.toLocaleString()} valid points`;
     }
   }
+}
+
+/**
+ * Format the selected journey's date span as "Mon D, YYYY - Mon D, YYYY"
+ * (or a single date if the span is one day). Uses a hyphen, no dashes.
+ * @param {import('./types.js').LocationPoint[]} pts
+ * @returns {string}
+ */
+function dateRangeLabel(pts) {
+  if (!pts || pts.length === 0) return '';
+  const fmt = (ms) => new Date(ms).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'short', day: 'numeric',
+  });
+  const start = fmt(pts[0].timestampMs);
+  const end = fmt(pts[pts.length - 1].timestampMs);
+  return start === end ? start : `${start} - ${end}`;
 }
 
 // ── Preview ───────────────────────────────────────────────────────────────────
@@ -216,7 +232,15 @@ async function onCreateMP4() {
     const totalFrames  = settings.fps * settings.durationSec;
     const frames       = buildFrames(loadedPoints, totalFrames, easeInOut);
     const cameraState  = createCameraState(loadedPoints, settings);
-    const compositor   = createCompositor(loadedPoints, frames, settings, cameraState);
+
+    // Overlay metadata for the title card: date range of the selection and the
+    // total distance (which the card animates 0 -> total along the line).
+    const meta = {
+      dateLabel: dateRangeLabel(loadedPoints),
+      totalMeters: totalDistanceMetres(loadedPoints),
+      distanceUnit: settings.distanceUnit,
+    };
+    const compositor   = createCompositor(loadedPoints, frames, settings, cameraState, meta);
 
     // 1. Prefetch tiles along the path at the zoom the camera will render at,
     //    so the encode loop reads from cache instead of stalling on the network.

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GoogleMap Visualizer</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap">
   <style>
     /* ─────────────────────────  Design tokens  ───────────────────────── */
@@ -383,9 +384,10 @@
       /* Break out of the 600px page column so each sentence fits on one line;
          centred on the viewport, and still wraps gracefully on small screens. */
       width: min(94vw, 760px);
-      margin-top: 12px; margin-left: 50%; transform: translateX(-50%);
-      font-size: 0.74rem; line-height: 1.7; color: var(--text-sub);
+      margin-top: 10px; margin-left: 50%; transform: translateX(-50%);
+      font-size: 0.66rem; line-height: 1.6; color: var(--text-sub);
     }
+    footer .tp-link { font-size: 0.66rem; display: inline-block; margin-top: 6px; }
 
     :focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
@@ -410,7 +412,7 @@
     <!-- ── Hero ── -->
     <header class="hero">
       <h1>Turn your travels into a video</h1>
-      <p>Animate your Google Maps Timeline on a map and export it as an MP4 — entirely on your device. Nothing is uploaded.</p>
+      <p>Animate your Google Maps Timeline on a map and export it as an MP4, entirely on your device. Nothing is uploaded.</p>
     </header>
 
     <!-- ── Stepper ── -->
@@ -450,7 +452,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
         </div>
         <div class="dz-title">Drop your Timeline.json here</div>
-        <div class="dz-sub">or tap to browse — up to ~200&nbsp;MB</div>
+        <div class="dz-sub">or tap to browse, up to ~200&nbsp;MB</div>
       </div>
 
       <div class="or">or</div>
@@ -564,10 +566,10 @@
       <div class="field">
         <label for="camera">Camera movement</label>
         <select id="camera">
-          <option value="fixed">Fixed zoom — show the whole journey</option>
+          <option value="fixed">Fixed zoom (show the whole journey)</option>
           <option value="steady">Steady following</option>
           <option value="dynamic">Dynamic following</option>
-          <option value="closeup" selected>Close-up — follow up close</option>
+          <option value="closeup" selected>Close-up (follow up close)</option>
         </select>
       </div>
 
@@ -707,7 +709,7 @@
         Not affiliated with, endorsed by, or sponsored by Google.<br>
         Google Maps and Google are trademarks of Google LLC.
       </p>
-      <a href="/third-party-notices.txt" target="_blank" rel="noopener">Third-party notices</a>
+      <a href="/third-party-notices.txt" class="tp-link" target="_blank" rel="noopener">Third-party notices</a>
     </footer>
   </div>
 
@@ -745,7 +747,7 @@
             : '<path d="' + MOON + '"/>';
         }
         var names = { auto: 'Auto (system)', light: 'Light', dark: 'Dark' };
-        themeBtn && themeBtn.setAttribute('title', 'Theme: ' + names[themeMode] + ' — tap to change');
+        themeBtn && themeBtn.setAttribute('title', 'Theme: ' + names[themeMode] + ', tap to change');
       }
       applyTheme();
 
