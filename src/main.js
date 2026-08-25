@@ -160,6 +160,17 @@ function recomputeSelection() {
   const { distanceUnit } = controls.readSettings();
   controls.updateStats(count, distM, distanceUnit);
 
+  // Surprise: how many times has this journey circled the Earth?
+  // Earth's circumference is 40075 km; show the banner only at 1+ full laps.
+  const EARTH_CIRCUMFERENCE_M = 40075 * 1000;
+  const laps = Math.floor(distM / EARTH_CIRCUMFERENCE_M);
+  const brag = document.getElementById('earthBrag');
+  if (brag) {
+    brag.setAttribute('data-laps', String(laps));
+    if (window.renderEarthBrag) window.renderEarthBrag();
+    else brag.style.display = laps >= 1 ? 'block' : 'none';
+  }
+
   const fileInfo = document.getElementById('fileInfo');
   if (fileInfo) {
     fileInfo.style.display = 'block';
