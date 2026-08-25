@@ -30,6 +30,8 @@ export function readSettings() {
     height,
     cameraMode:  val('camera') || 'steady',
     distanceUnit: val('unit') || 'km',
+    socialPlatform: document.querySelector('input[name="socialPlatform"]:checked')?.value || 'Instagram',
+    socialHandle:   (val('socialHandle') || '').trim().replace(/^@+/, ''),
   };
 }
 
