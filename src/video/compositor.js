@@ -134,6 +134,22 @@ function drawHUD(ctx, frame, settings, meta) {
   ctx.fillStyle = 'rgba(28,15,21,0.7)';
   ctx.fillText('© OpenStreetMap contributors  © CARTO', 10 * scale, height - 8 * scale);
   ctx.restore();
+
+  // ── Social handle (bottom-right) — same styling as the attribution ───────
+  const handle = (settings.socialHandle || '').trim();
+  if (handle) {
+    const platform = settings.socialPlatform || 'Instagram';
+    const label = `${platform}: @${handle}`;
+    ctx.save();
+    ctx.font = `500 ${Math.round(10 * scale)}px ${FONT_STACK}`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.shadowColor = 'rgba(255,255,255,0.7)';
+    ctx.shadowBlur = 3 * scale;
+    ctx.fillStyle = 'rgba(28,15,21,0.7)';
+    ctx.fillText(label, width - 10 * scale, height - 8 * scale);
+    ctx.restore();
+  }
 }
 
 /**

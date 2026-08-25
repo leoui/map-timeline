@@ -307,7 +307,8 @@ function showDownloadButton(settings) {
   btn.id = 'dlBtn';
   btn.className = 'btn btn-primary';
   btn.style.gridColumn = 'span 2';
-  btn.textContent = 'Download MP4';
+  btn.setAttribute('data-i18n', 'btn.download'); // so the language toggle updates it
+  btn.textContent = (window.i18nText && window.i18nText('btn.download')) || 'Download MP4';
   btn.onclick = onDownload; // save the already-encoded video (opens save dialog)
   row.appendChild(btn);
 }
