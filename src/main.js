@@ -40,7 +40,8 @@ let loadedFilename = '';
 /**
  * The most recently encoded video, kept so the Download button can save it
  * without re-encoding (and so the save dialog opens from that click's gesture).
- * @type {{ buffer: ArrayBuffer, settings: import('./types.js').VideoSettings } | null}
+ * Stored as an immutable Blob so it can't be detached before the user saves.
+ * @type {{ blob: Blob, settings: import('./types.js').VideoSettings } | null}
  */
 let lastVideo = null;
 
@@ -264,8 +265,9 @@ async function onCreateMP4() {
     //    OS "save as" dialog can open from a real user gesture).
     progress.emit('mux:start');
     const buffer = await muxToBuffer(result, settings);
-    lastVideo = { buffer, settings };
-    progress.emit('mux:done', { sizeBytes: buffer.byteLength });
+    const blob = new Blob([buffer], { type: 'video/mp4' });
+    lastVideo = { blob, settings };
+    progress.emit('mux:done', { sizeBytes: blob.size });
 
     showDownloadButton(settings);
 
@@ -316,7 +318,7 @@ async function onDownload() {
   const btn = document.getElementById('dlBtn');
   if (btn) btn.disabled = true;
   try {
-    const outcome = await saveVideo(lastVideo.buffer, lastVideo.settings);
+    const outcome = await saveVideo(lastVideo.blob, lastVideo.settings);
     if (outcome === 'cancelled') return; // user closed the save dialog — no-op
   } catch (err) {
     showError(`Could not save the video: ${err.message}`);

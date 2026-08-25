@@ -86,24 +86,30 @@ export async function muxToBuffer(result, settings) {
 }
 
 /**
- * Save an MP4 buffer. Prefers the File System Access API so the user gets a
+ * Save an MP4 Blob. Prefers the File System Access API so the user gets a
  * "save as" dialog to choose the folder and filename; falls back to a direct
  * download (straight to the browser's Downloads folder) where that API is
  * unavailable (e.g. Firefox, or non-secure contexts).
  *
+ * The video is passed as a Blob (never a raw ArrayBuffer): a Blob can't be
+ * detached, and writing it through the picker stream is far more reliable for
+ * large files than writing an ArrayBuffer, which has produced 0-byte files on
+ * some systems. After writing we verify the file is non-empty and, only if it
+ * isn't, fall back to a direct download so the user never ends up with 0 bytes.
+ *
  * MUST be called from within a user gesture (e.g. a click handler) — the save
  * picker requires transient activation and will otherwise throw.
  *
- * @param {ArrayBuffer} buffer
+ * @param {Blob} blob
  * @param {import('../types.js').VideoSettings} settings
  * @returns {Promise<'saved'|'cancelled'|'downloaded'>}
  */
-export async function saveVideo(buffer, settings) {
+export async function saveVideo(blob, settings) {
   const filename = sanitiseFilename(settings.title) + '.mp4';
 
   if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
-    // Step 1: open the picker. Only failures HERE justify the download fallback
-    // (user cancelled, or the API is present but unusable in this context).
+    // Step 1: open the picker. Only a failure HERE (cancel / API unusable) falls
+    // straight through to the download path.
     let handle;
     try {
       handle = await window.showSaveFilePicker({
@@ -115,32 +121,42 @@ export async function saveVideo(buffer, settings) {
       handle = null; // API unusable → fall back to a plain download below
     }
 
-    // Step 2: once the user has picked a file, write to it. A write error here
-    // must NOT fall back to downloadBuffer — that would pop a second dialog.
+    // Step 2: write the Blob to the chosen file, then verify it actually landed.
     if (handle) {
-      const writable = await handle.createWritable();
-      await writable.write(buffer);
-      await writable.close();
-      return 'saved';
+      try {
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        // Confirm the bytes were written; a 0-byte result means the write
+        // silently failed, so fall through to the download fallback below.
+        try {
+          const written = await handle.getFile();
+          if (written.size > 0) return 'saved';
+        } catch {
+          return 'saved'; // can't re-read (permission) — assume the write worked
+        }
+      } catch {
+        // Write threw after the user picked a file — fall through and still
+        // deliver the video via a direct download rather than losing it.
+      }
     }
   }
 
-  downloadBuffer(buffer, filename);
+  downloadBlob(blob, filename);
   return 'downloaded';
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Trigger a browser file download from an ArrayBuffer.
+ * Trigger a browser file download from a Blob.
  *
- * @param {ArrayBuffer} buffer
+ * @param {Blob} blob
  * @param {string} filename
  */
-export function downloadBuffer(buffer, filename) {
-  const blob = new Blob([buffer], { type: 'video/mp4' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
+export function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
   a.href     = url;
   a.download = filename;
   a.style.display = 'none';
@@ -151,6 +167,16 @@ export function downloadBuffer(buffer, filename) {
     URL.revokeObjectURL(url);
     a.remove();
   }, 5_000);
+}
+
+/**
+ * Trigger a browser file download from an ArrayBuffer (wraps it in a Blob).
+ *
+ * @param {ArrayBuffer} buffer
+ * @param {string} filename
+ */
+export function downloadBuffer(buffer, filename) {
+  downloadBlob(new Blob([buffer], { type: 'video/mp4' }), filename);
 }
 
 /**
