@@ -1,8 +1,18 @@
 {
-  "name": "googlemap-visualizer",
+  "name": "@leoui/googlemap-visualizer",
   "version": "1.0.0",
-  "description": "GoogleMap Visualizer — animate your Google Maps Timeline as an MP4 video, all processing stays on-device.",
+  "description": "GoogleMap Visualizer: animate your Google Maps Timeline as an MP4 video, all processing stays on-device.",
   "type": "module",
+  "author": "Lewi Verdatama (@lverdatama)",
+  "license": "MIT",
+  "homepage": "https://googlemapvideo.vercel.app",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leoui/map-timeline.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
