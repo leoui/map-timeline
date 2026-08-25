@@ -1,0 +1,111 @@
+import { describe, it, expect } from 'vitest';
+import { parseTimeline, summarise } from '../src/parser.js';
+
+// ── Format D: on-device "Timeline" export (bare top-level array) ────────────────
+
+describe('parseTimeline — on-device Timeline export (bare array)', () => {
+  const mobile = [
+    {
+      startTime: '2014-05-23T14:13:07.613+07:00',
+      endTime: '2014-05-23T18:50:04.535+07:00',
+      visit: { topCandidate: { placeLocation: 'geo:-6.253327,106.798137' } },
+    },
+    {
+      startTime: '2014-05-24T09:04:07.530+07:00',
+      endTime: '2014-05-24T09:52:40.731+07:00',
+      activity: { start: 'geo:-6.207423,106.770564', end: 'geo:-6.255882,106.802830' },
+    },
+    {
+      startTime: '2014-05-23T06:00:00.000Z',
+      endTime: '2014-05-23T08:00:00.000Z',
+      timelinePath: [
+        { point: 'geo:-6.254193,106.800032', durationMinutesOffsetFromStartTime: '73' },
+      ],
+    },
+    // Records with no coordinates must be ignored, not throw.
+    { startTime: '2014-05-25T00:00:00Z', endTime: '2014-05-25T01:00:00Z', timelineMemory: {} },
+  ];
+
+  it('parses visit, activity, and timelinePath records', () => {
+    const pts = parseTimeline(mobile);
+    // visit(1) + activity(2) + timelinePath(1) = 4 points
+    expect(pts).toHaveLength(4);
+    for (const p of pts) {
+      expect(p.lat).toBeGreaterThanOrEqual(-90);
+      expect(p.lat).toBeLessThanOrEqual(90);
+      expect(Number.isFinite(p.timestampMs)).toBe(true);
+    }
+  });
+
+  it('applies the timelinePath minute offset to the segment start', () => {
+    const pts = parseTimeline([mobile[2]]);
+    const start = Date.parse('2014-05-23T06:00:00.000Z');
+    expect(pts[0].timestampMs).toBe(start + 73 * 60_000);
+  });
+
+  it('returns points sorted chronologically', () => {
+    const pts = parseTimeline(mobile);
+    for (let i = 1; i < pts.length; i++) {
+      expect(pts[i].timestampMs).toBeGreaterThanOrEqual(pts[i - 1].timestampMs);
+    }
+  });
+
+  it('honours a date-range filter', () => {
+    const startMs = Date.parse('2014-05-24T00:00:00Z');
+    const endMs = Date.parse('2014-05-24T23:59:59Z');
+    const pts = parseTimeline(mobile, { startMs, endMs });
+    // Only the activity segment falls entirely on the 24th.
+    expect(pts.length).toBe(2);
+  });
+});
+
+// ── Legacy formats still work ──────────────────────────────────────────────────
+
+describe('parseTimeline — legacy formats', () => {
+  it('parses Format A (latitudeE7 + timestampMs)', () => {
+    const raw = {
+      locations: [
+        { latitudeE7: 523456780, longitudeE7: 133456780, timestampMs: '1600000000000' },
+        { latitudeE7: 523456790, longitudeE7: 133456790, timestampMs: '1600000060000' },
+      ],
+    };
+    const pts = parseTimeline(raw);
+    expect(pts).toHaveLength(2);
+    expect(pts[0].lat).toBeCloseTo(52.345678, 5);
+  });
+
+  it('parses Format C (semanticSegments + geo: points)', () => {
+    const raw = {
+      semanticSegments: [
+        {
+          timelinePath: [
+            { point: 'geo:1.5,2.5', time: '2020-01-01T00:00:00Z' },
+            { point: 'geo:1.6,2.6', time: '2020-01-01T00:01:00Z' },
+          ],
+        },
+      ],
+    };
+    const pts = parseTimeline(raw);
+    expect(pts).toHaveLength(2);
+    expect(pts[0].lng).toBeCloseTo(2.5, 5);
+  });
+
+  it('throws on an unrecognised shape', () => {
+    expect(() => parseTimeline({ nope: true })).toThrow(/Unrecognised/i);
+  });
+
+  it('throws a date-range message when the filter empties a valid file', () => {
+    const raw = { locations: [{ latitudeE7: 100000000, longitudeE7: 100000000, timestampMs: 1000 }] };
+    expect(() => parseTimeline(raw, { startMs: 5000, endMs: 9000 })).toThrow(/date range/i);
+  });
+});
+
+describe('summarise', () => {
+  it('reports count and span', () => {
+    const s = summarise([
+      { lat: 0, lng: 0, timestampMs: 10 },
+      { lat: 1, lng: 1, timestampMs: 50 },
+    ]);
+    expect(s).toEqual({ count: 2, startMs: 10, endMs: 50 });
+  });
+});
