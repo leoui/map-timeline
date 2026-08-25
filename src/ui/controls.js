@@ -23,7 +23,7 @@ export function readSettings() {
   const { width, height } = FORMAT_MAP[formatKey] ?? FORMAT_MAP.portrait;
 
   return {
-    title:       val('videoTitle') || 'My Journey',
+    title:       val('videoTitle') || 'My Google Map Timeline Video',
     durationSec: parseInt(val('duration') || '30', 10),
     fps:         parseInt(val('fps') || '30', 10),
     width,
