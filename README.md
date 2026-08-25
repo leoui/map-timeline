@@ -1,6 +1,6 @@
 # GoogleMap Visualizer
 
-Turn your Google Maps Timeline into a shareable MP4 — animated on a map, rendered
+Turn your Google Maps Timeline into a shareable MP4 - animated on a map, rendered
 **entirely in your browser**. No account, no server, no upload. Your Timeline file
 never leaves your device.
 
@@ -17,7 +17,7 @@ never leaves your device.
 - Renders a portrait/square/landscape **MP4** using the browser's **WebCodecs**
   encoder, with a title card (title + date range + animated distance counter) and an
   optional social handle watermark.
-- Everything runs client-side — the only network calls are for map tiles.
+- Everything runs client-side - the only network calls are for map tiles.
 
 ## Features
 
@@ -48,7 +48,7 @@ never leaves your device.
 
 Requires a Chromium-based browser (**Chrome / Edge 94+**) for WebCodecs +
 `OffscreenCanvas`. Firefox does not yet support `VideoEncoder`; the app detects this
-and shows a clear notice. HTTPS (or `localhost`) is required — WebCodecs needs a
+and shows a clear notice. HTTPS (or `localhost`) is required - WebCodecs needs a
 secure context.
 
 ## Development
@@ -68,19 +68,19 @@ The version shown at the bottom of the app follows a date-based scheme:
 Version: YYYYMMDD.C##
 ```
 
-- `YYYYMMDD` — release date
-- `C` — change type code:
-  - **A** — Major changes
-  - **X** — Minor changes
-  - **U** — UI changes only
-  - **Z** — New feature added
-- `##` — sequence number for that day
+- `YYYYMMDD` - release date
+- `C` - change type code:
+  - **A** - Major changes
+  - **X** - Minor changes
+  - **U** - UI changes only
+  - **Z** - New feature added
+- `##` - sequence number for that day
 
 Example: `20260826.Z01`
 
 ## Credits
 
-- **Vibe Coded by Lewi Verdatama** — Instagram [@lverdatama](https://instagram.com/lverdatama)
+- **Vibe Coded by Lewi Verdatama** - Instagram [@lverdatama](https://instagram.com/lverdatama)
 - Inspired by [Google Timeline Visualizer](https://ahn-lab.org/google-timeline-visualizer/)
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors · © [CARTO](https://carto.com/attribution)
 
