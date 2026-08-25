@@ -15,7 +15,7 @@ import { prefetchAlongPath } from './map/tiles.js';
 import { fitZoom } from './map/projection.js';
 import { createCompositor } from './video/compositor.js';
 import { encode, supportsH264 } from './video/encoder.js';
-import { muxAndDownload, estimateSizeBytes } from './video/muxer.js';
+import { muxToBuffer, saveVideo, estimateSizeBytes } from './video/muxer.js';
 import { bitrateForFormat } from './video/encoder.js';
 import { samplePoints, SAMPLE_META } from './sample-data.js';
 import * as progress from './ui/progress.js';
@@ -36,6 +36,13 @@ let allRawPoints = null;
 
 /** Filename of the currently loaded data, for the file-info line. */
 let loadedFilename = '';
+
+/**
+ * The most recently encoded video, kept so the Download button can save it
+ * without re-encoding (and so the save dialog opens from that click's gesture).
+ * @type {{ buffer: ArrayBuffer, settings: import('./types.js').VideoSettings } | null}
+ */
+let lastVideo = null;
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -226,9 +233,11 @@ async function onCreateMP4() {
     });
     progress.emit('encode:done');
 
-    // 3. Mux + download
+    // 3. Mux into an MP4 buffer (saving happens on the Download click so the
+    //    OS "save as" dialog can open from a real user gesture).
     progress.emit('mux:start');
-    const buffer = await muxAndDownload(result, settings);
+    const buffer = await muxToBuffer(result, settings);
+    lastVideo = { buffer, settings };
     progress.emit('mux:done', { sizeBytes: buffer.byteLength });
 
     showDownloadButton(settings);
@@ -270,6 +279,16 @@ function showDownloadButton(settings) {
   btn.className = 'btn btn-primary';
   btn.style.gridColumn = 'span 2';
   btn.textContent = 'Download MP4';
-  btn.onclick = () => onCreateMP4(); // re-encode on second click
+  btn.onclick = onDownload; // save the already-encoded video (opens save dialog)
   row.appendChild(btn);
+}
+
+async function onDownload() {
+  if (!lastVideo) return;
+  try {
+    const outcome = await saveVideo(lastVideo.buffer, lastVideo.settings);
+    if (outcome === 'cancelled') return; // user closed the save dialog — no-op
+  } catch (err) {
+    showError(`Could not save the video: ${err.message}`);
+  }
 }
