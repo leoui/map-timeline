@@ -132,28 +132,20 @@ export async function encode(compositor, frames, settings, onProgress) {
     framerate: settings.fps,
   };
 
-  const h264Config = {
-    ...baseConfig,
-    codec: 'avc1.42001f', // H.264 Baseline Level 3.1
-    // mp4-muxer wants length-prefixed 'avc' bitstream, NOT annex-b.
-    avc: { format: 'avc' },
-  };
-  const vp9Config = {
-    ...baseConfig,
-    codec: 'vp09.00.10.08',
-  };
-
-  const h264Supported = await isSupported(h264Config);
-  if (h264Supported) {
+  // Prefer H.264 so the result plays in QuickTime / Safari / iOS (which do NOT
+  // support VP9). We try High and Main profiles at a level high enough for the
+  // resolution before Baseline — Baseline L3.1 (avc1.42001f) can't handle 1080p,
+  // so requesting only it makes capable machines fall back to VP9 needlessly.
+  const h264Config = await pickH264Config(baseConfig);
+  if (h264Config) {
     encoder.configure(h264Config);
     codecName = 'avc';
   } else {
-    const vp9Supported = await isSupported(vp9Config);
-    if (!vp9Supported) {
+    const vp9Config = { ...baseConfig, codec: 'vp09.00.10.08' };
+    if (!(await isSupported(vp9Config))) {
       encoder.close();
       throw new Error(
-        `Neither H.264 nor VP9 encoding is supported at ${settings.width}×${settings.height} ` +
-        'on this device.'
+        `No supported video codec found at ${settings.width}×${settings.height} on this device.`
       );
     }
     encoder.configure(vp9Config);
@@ -197,6 +189,36 @@ export async function encode(compositor, frames, settings, onProgress) {
 }
 
 /**
+ * Candidate H.264 codec strings, in preference order. All are QuickTime/Safari/
+ * iOS-compatible. Levels are chosen to cover up to 4K:
+ *   High  L5.1 (640033) → High  L4.0 (640028)
+ *   Main  L5.1 (4d0033) → Main  L4.0 (4d0028)
+ *   Baseline L3.1 (42001f, small formats only) as a last resort.
+ * @type {string[]}
+ */
+const H264_CANDIDATES = [
+  'avc1.640033',
+  'avc1.640028',
+  'avc1.4d0033',
+  'avc1.4d0028',
+  'avc1.42001f',
+];
+
+/**
+ * Find the first supported H.264 config for these dimensions, or null.
+ * mp4-muxer wants a length-prefixed ('avc') bitstream, not annex-b.
+ * @param {Omit<VideoEncoderConfig,'codec'>} baseConfig
+ * @returns {Promise<VideoEncoderConfig|null>}
+ */
+async function pickH264Config(baseConfig) {
+  for (const codec of H264_CANDIDATES) {
+    const config = { ...baseConfig, codec, avc: { format: 'avc' } };
+    if (await isSupported(config)) return config;
+  }
+  return null;
+}
+
+/**
  * Wrapper around VideoEncoder.isConfigSupported that never throws.
  * @param {VideoEncoderConfig} config
  * @returns {Promise<boolean>}
@@ -236,12 +258,11 @@ export function bitrateForFormat(settings) {
  */
 export async function supportsH264(width, height) {
   if (typeof VideoEncoder === 'undefined') return false;
-  const support = await VideoEncoder.isConfigSupported({
-    codec: 'avc1.42001f',
+  const config = await pickH264Config({
     width,
     height,
     bitrate: bitrateForFormat({ width, height }),
     framerate: 30,
   });
-  return support.supported === true;
+  return config !== null;
 }

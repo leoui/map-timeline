@@ -10,8 +10,8 @@
 import { parseTimeline, summarise } from './parser.js';
 import { filterOutliers, totalDistanceMetres } from './journey/filter.js';
 import { buildFrames, easeInOut } from './journey/interpolate.js';
-import { createCameraState } from './journey/camera.js';
-import { prefetchTiles } from './map/tiles.js';
+import { createCameraState, representativeZoom } from './journey/camera.js';
+import { prefetchAlongPath } from './map/tiles.js';
 import { fitZoom } from './map/projection.js';
 import { createCompositor } from './video/compositor.js';
 import { encode, supportsH264 } from './video/encoder.js';
@@ -208,10 +208,11 @@ async function onCreateMP4() {
     const cameraState  = createCameraState(loadedPoints, settings);
     const compositor   = createCompositor(loadedPoints, frames, settings, cameraState);
 
-    // 1. Prefetch tiles
-    const prefetchZoom = fitZoom(loadedPoints, settings.width, settings.height, 64);
+    // 1. Prefetch tiles along the path at the zoom the camera will render at,
+    //    so the encode loop reads from cache instead of stalling on the network.
+    const prefetchZoom = representativeZoom(cameraState, settings);
     progress.emit('tiles:start', { total: 0 }); // total computed inside prefetch
-    await prefetchTiles(
+    await prefetchAlongPath(
       loadedPoints,
       prefetchZoom,
       (loaded, total) => progress.emit('tiles:progress', { loaded, total })
