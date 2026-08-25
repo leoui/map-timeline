@@ -18,16 +18,19 @@ import { haversineMetres } from '../map/projection.js';
  *
  * @param {import('../types.js').LocationPoint[]} points  - Filtered, sorted points
  * @param {number} totalFrames                            - fps × durationSec
+ * @param {(t: number) => number} [ease]                  - Optional easing of the
+ *   0..1 timeline; applied to BOTH the sampled position and progressRatio so the
+ *   dot, trail, and camera all stay in lock-step. Defaults to linear.
  * @returns {import('../types.js').AnimFrame[]}
  */
-export function buildFrames(points, totalFrames) {
+export function buildFrames(points, totalFrames, ease = (t) => t) {
   if (points.length === 0) return [];
   if (points.length === 1) {
     // Single-point journey — hold still
     return Array.from({ length: totalFrames }, (_, i) => ({
       lat: points[0].lat,
       lng: points[0].lng,
-      progressRatio: i / (totalFrames - 1),
+      progressRatio: ease(i / (totalFrames - 1)),
       frameIndex: i,
       totalFrames,
     }));
@@ -49,7 +52,7 @@ export function buildFrames(points, totalFrames) {
   let segIndex = 0; // current segment in `points`
 
   for (let fi = 0; fi < totalFrames; fi++) {
-    const ratio = fi / (totalFrames - 1);
+    const ratio = ease(fi / (totalFrames - 1));
     const targetDist = ratio * totalDist;
 
     // Advance segIndex until targetDist is within this segment
@@ -83,20 +86,13 @@ export function buildFrames(points, totalFrames) {
 }
 
 /**
- * Apply a smooth ease-in-out curve to progressRatio so the video
- * accelerates at the start and decelerates at the end.
+ * Cubic ease-in-out (smoothstep) curve: the animation accelerates at the start
+ * and decelerates at the end. Pass this to buildFrames() as its `ease` argument
+ * so the eased timeline drives position and progress together.
  *
- * @param {import('../types.js').AnimFrame[]} frames
- * @returns {import('../types.js').AnimFrame[]}
+ * @param {number} t  - 0..1
+ * @returns {number}  - 0..1
  */
-export function easeInOut(frames) {
-  return frames.map((f) => ({
-    ...f,
-    progressRatio: smoothStep(f.progressRatio),
-  }));
-}
-
-/** Standard cubic smoothstep. */
-function smoothStep(t) {
+export function easeInOut(t) {
   return t * t * (3 - 2 * t);
 }

@@ -11,13 +11,19 @@ import { fetchTile } from './tiles.js';
 /**
  * Draw the map background and journey path onto a canvas.
  *
+ * The trail is drawn through EXACTLY the points in `path`, and the head dot sits
+ * at the last of them — so callers pass the same interpolated positions the
+ * camera is centred on, keeping dot, trail, and camera in sync. For the video
+ * this is frames[0..current]; for the static preview it's the full journey.
+ *
  * @param {OffscreenCanvas | HTMLCanvasElement} canvas
- * @param {import('../types.js').LocationPoint[]} points   - Full filtered journey
- * @param {import('../types.js').Viewport} viewport        - Current camera viewport
- * @param {number} [progressRatio=1]  - 0..1 — how much of the path to draw
+ * @param {{lat:number,lng:number}[]} path            - Trail points to draw (head = last)
+ * @param {import('../types.js').Viewport} viewport   - Current camera viewport
+ * @param {{ pulsePhase?: number }} [opts]            - pulsePhase drives the head ring (0..1)
  * @returns {Promise<void>}
  */
-export async function renderMap(canvas, points, viewport, progressRatio = 1) {
+export async function renderMap(canvas, path, viewport, opts = {}) {
+  const { pulsePhase = 1 } = opts;
   const ctx = canvas.getContext('2d');
   const { width, height } = canvas;
   const { centerLat, centerLng, zoom } = viewport;
@@ -57,13 +63,10 @@ export async function renderMap(canvas, points, viewport, progressRatio = 1) {
   await Promise.all(tileDrawCalls);
 
   // ── 4. Draw journey path ────────────────────────────────────────────────────
-  if (points.length < 2) return;
+  if (!path || path.length < 2) return;
 
-  const endIndex = Math.max(1, Math.round(progressRatio * (points.length - 1)));
-  const visiblePoints = points.slice(0, endIndex + 1);
-
-  // Convert all visible points to canvas pixel coordinates
-  const canvasPts = visiblePoints.map(({ lat, lng }) => {
+  // Convert the trail points to canvas pixel coordinates
+  const canvasPts = path.map(({ lat, lng }) => {
     const { px, py } = latLngToPixel(lat, lng, zoom);
     return { x: px - originPx, y: py - originPy };
   });
@@ -98,7 +101,7 @@ export async function renderMap(canvas, points, viewport, progressRatio = 1) {
   // compositor.js which calls this function per frame with varying alpha)
   ctx.beginPath();
   ctx.arc(head.x, head.y, dotRadius * 1.8, 0, Math.PI * 2);
-  ctx.strokeStyle = `rgba(217, 26, 90, ${0.3 + 0.2 * Math.sin(progressRatio * Math.PI * 40)})`;
+  ctx.strokeStyle = `rgba(217, 26, 90, ${0.3 + 0.2 * Math.sin(pulsePhase * Math.PI * 40)})`;
   ctx.lineWidth = 1.5;
   ctx.stroke();
 }
