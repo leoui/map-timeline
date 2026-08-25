@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timeline Visualizer</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Inter:wght@400;500;600&display=swap">
+  <style>
+    /* ── Tokens ── */
+    :root {
+      --rose:        #D91A5A;
+      --rose-hover:  #B81449;
+      --rose-pale:   #F9E4ED;
+      --rose-pale-h: #F2CEDF;
+      --ground:      #FBF4F6;
+      --surface:     #FFFFFF;
+      --border:      #ECD5E0;
+      --text:        #1C0F15;
+      --text-muted:  #7D5F6D;
+      --text-sub:    #A8839A;
+      --blob-a:      rgba(217,26,90,0.10);
+      --blob-b:      rgba(217,26,90,0.06);
+      --shadow:      0 1px 3px rgba(28,15,21,0.06), 0 4px 12px rgba(28,15,21,0.05);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --ground:     #1A0D12;
+        --surface:    #261320;
+        --border:     #3D2030;
+        --text:       #F5EDF1;
+        --text-muted: #B08AA0;
+        --text-sub:   #7A5568;
+        --blob-a:     rgba(217,26,90,0.18);
+        --blob-b:     rgba(217,26,90,0.10);
+        --rose-pale:  #3D1428;
+        --rose-pale-h:#4F1A34;
+        --shadow:     0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.20);
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --ground:     #1A0D12;
+      --surface:    #261320;
+      --border:     #3D2030;
+      --text:       #F5EDF1;
+      --text-muted: #B08AA0;
+      --text-sub:   #7A5568;
+      --blob-a:     rgba(217,26,90,0.18);
+      --blob-b:     rgba(217,26,90,0.10);
+      --rose-pale:  #3D1428;
+      --rose-pale-h:#4F1A34;
+      --shadow:     0 1px 3px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.20);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--ground);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 48px 16px 80px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 640px; height: 640px;
+      top: -180px; left: -160px;
+      background: radial-gradient(circle, var(--blob-a) 0%, transparent 70%);
+    }
+    body::after {
+      width: 500px; height: 500px;
+      bottom: -120px; right: -100px;
+      background: radial-gradient(circle, var(--blob-b) 0%, transparent 70%);
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 540px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(2rem, 6vw, 2.75rem);
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      text-align: center;
+      color: var(--text);
+      margin-bottom: 32px;
+      text-wrap: balance;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 1.0625rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 18px;
+      letter-spacing: -0.01em;
+    }
+
+    .codec-banner {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    details {
+      margin-bottom: 18px;
+    }
+
+    details summary {
+      font-size: 0.8125rem;
+      color: var(--rose);
+      cursor: pointer;
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px;
+      background: var(--rose-pale);
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+
+    details summary::-webkit-details-marker { display: none; }
+    details summary::before {
+      content: '▶';
+      font-size: 0.625rem;
+      transition: transform 0.2s;
+      display: inline-block;
+    }
+    details[open] summary::before { transform: rotate(90deg); }
+    details summary:hover { background: var(--rose-pale-h); }
+
+    details .detail-body {
+      padding: 14px;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+    }
+
+    details .detail-body ol {
+      padding-left: 18px;
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 13px 20px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s, transform 0.1s, opacity 0.15s;
+      text-align: center;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .btn-primary { background: var(--rose); color: #fff; }
+    .btn-primary:not(:disabled):hover { background: var(--rose-hover); }
+
+    .btn-secondary { background: var(--rose-pale); color: var(--rose); margin-top: 10px; }
+    .btn-secondary:not(:disabled):hover { background: var(--rose-pale-h); }
+
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text);
+      font-weight: 500;
+    }
+    .btn-outline:not(:disabled):hover { border-color: var(--rose); color: var(--rose); }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .file-info {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+    .file-info strong { color: var(--text); font-weight: 500; }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    select, input[type="text"], input[type="date"] {
+      font-family: inherit;
+      font-size: 0.9375rem;
+      color: var(--text);
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237D5F6D' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--rose);
+      box-shadow: 0 0 0 3px rgba(217,26,90,0.10);
+    }
+
+    .field-hint {
+      font-size: 0.78125rem;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+
+    .date-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .date-row .field { margin-bottom: 0; }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .check-row input[type="checkbox"] {
+      width: 18px; height: 18px;
+      accent-color: var(--rose);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .check-row label {
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: 500;
+      margin-bottom: 0;
+    }
+
+    .stats-line {
+      font-size: 0.84375rem;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+      padding: 10px 14px;
+      background: var(--rose-pale);
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+    .stats-line strong { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .privacy-box {
+      background: var(--rose-pale);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+    .privacy-box h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; }
+    .privacy-box p {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .privacy-link {
+      font-size: 0.8125rem;
+      color: var(--rose);
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 4px;
+    }
+    .privacy-link:hover { text-decoration: underline; }
+
+    .error-banner {
+      background: #FEF2F2;
+      border: 1px solid #FCA5A5;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.8125rem;
+      color: #991B1B;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .output-section {
+      margin-top: 20px;
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .output-section.visible { display: flex; }
+
+    .progress-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--rose);
+      border-radius: 3px;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    #progressLabel {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .map-preview {
+      width: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      aspect-ratio: 1 / 1;
+      display: none;
+      background: #E8EAE8;
+      margin-top: 16px;
+    }
+    .map-preview canvas { width: 100%; height: 100%; display: block; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-sub);
+      margin-top: 24px;
+      line-height: 1.8;
+    }
+    footer a { color: var(--text-sub); text-decoration: none; }
+    footer a:hover { color: var(--rose); }
+
+    :focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>Timeline Visualizer</h1>
+
+    <!-- Error banner (hidden by default) -->
+    <div class="error-banner" id="errorBanner" role="alert"></div>
+
+    <!-- ── Card 1: Timeline file ── -->
+    <div class="card">
+      <div class="card-title">Timeline file</div>
+      <p class="file-info">
+        Choose your exported <strong>Timeline.json</strong>. The file stays on this
+        device — only map tile coordinates are sent to the map provider.
+      </p>
+      <br>
+
+      <details>
+        <summary>How to export your Timeline on iPhone</summary>
+        <div class="detail-body">
+          <ol>
+            <li>Open the Google Maps app and tap your profile photo.</li>
+            <li>Go to <strong>Your Timeline</strong>.</li>
+            <li>Tap the three-dot menu (⋮) in the top-right corner.</li>
+            <li>Select <strong>Export Timeline data</strong>.</li>
+            <li>Choose a date range and tap <strong>Export</strong>.</li>
+            <li>Share the resulting JSON file here.</li>
+          </ol>
+        </div>
+      </details>
+
+      <input type="file" id="fileInput" accept=".json" style="display:none" aria-label="Choose Timeline.json">
+      <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+        Choose Timeline.json
+      </button>
+      <button class="btn btn-secondary" id="sampleBtn">
+        Try a fictional sample journey
+      </button>
+
+      <div class="file-info" id="fileInfo" style="display:none"></div>
+
+      <p class="codec-banner" id="codecBanner" style="margin-top:14px"></p>
+
+      <hr class="divider">
+
+      <div class="field">
+        <label for="lang">Language</label>
+        <select id="lang">
+          <option value="system">System default</option>
+          <option value="en" selected>English</option>
+          <option value="ko">한국어</option>
+          <option value="ja">日本語</option>
+          <option value="zh-cn">简体中文</option>
+          <option value="zh-tw">繁體中文</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="pt">Português (Brasil)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="unit">Distance unit</label>
+        <select id="unit">
+          <option value="auto">Automatic</option>
+          <option value="km" selected>Kilometers</option>
+          <option value="mi">Miles</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ── Card 2: Create your journey ── -->
+    <div class="card">
+      <div class="card-title">Create your journey</div>
+
+      <div class="field">
+        <label for="gps">GPS outlier filtering</label>
+        <select id="gps">
+          <option value="conservative" selected>Conservative</option>
+          <option value="off">Off</option>
+        </select>
+        <span class="field-hint" id="gpsHint">
+          Conservative filtering ignores only short, impossible round trips.
+          Your Timeline file is never changed.
+        </span>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="exactDates" checked>
+        <label for="exactDates">Select exact dates</label>
+      </div>
+
+      <div class="date-row" id="dateRow">
+        <div class="field">
+          <label for="startDate">Start date</label>
+          <input type="date" id="startDate" value="2026-01-01">
+        </div>
+        <div class="field">
+          <label for="endDate">End date</label>
+          <input type="date" id="endDate" value="2026-08-25">
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:18px">
+        <label for="videoTitle">Video title</label>
+        <input type="text" id="videoTitle" value="2026 Year to Date" placeholder="My Journey">
+      </div>
+
+      <div class="field">
+        <label for="duration">Duration</label>
+        <select id="duration">
+          <option value="10">10 seconds</option>
+          <option value="15">15 seconds</option>
+          <option value="20">20 seconds</option>
+          <option value="30">30 seconds</option>
+          <option value="45">45 seconds</option>
+          <option value="60" selected>60 seconds</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="camera">Camera movement</label>
+        <select id="camera">
+          <option value="fixed">Fixed zoom</option>
+          <option value="steady">Steady following</option>
+          <option value="dynamic">Dynamic following</option>
+          <option value="closeup" selected>Close-up</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="format">Video format</label>
+        <select id="format">
+          <option value="sq480">Square · 480p</option>
+          <option value="sq720">Square · 720p</option>
+          <option value="sq1080">Square · 1080p</option>
+          <option value="portrait" selected>Portrait · 1080×1920</option>
+          <option value="landscape">Landscape · 1920×1080</option>
+        </select>
+        <span class="field-hint">Larger formats take longer to create and produce larger files.</span>
+      </div>
+
+      <div class="field">
+        <label for="fps">Frame rate</label>
+        <select id="fps">
+          <option value="24">24 fps</option>
+          <option value="30">Recommended · 30 fps</option>
+          <option value="60" selected>60 fps</option>
+        </select>
+        <span class="field-hint">Higher frame rates look smoother but take longer and create larger files.</span>
+      </div>
+
+      <!-- Stats line (shown after file load) -->
+      <div class="stats-line" id="statsLine" style="display:none">
+        <strong id="pointCount">0</strong> location points ·
+        About <strong id="distKm">0 km</strong>
+      </div>
+
+      <!-- Privacy notice (shown after file load) -->
+      <div class="privacy-box" id="privacyBox" style="display:none">
+        <h3>Before loading the map</h3>
+        <p>
+          Your Timeline file is never uploaded. The map provider receives the tile
+          coordinates for map areas in the selected journey, along with normal network
+          information such as your IP address. This may reveal places in your Timeline
+          to the map provider.
+        </p>
+        <div class="check-row" style="margin-bottom:0">
+          <input type="checkbox" id="privacyConsent">
+          <label for="privacyConsent">I understand and want to load the map</label>
+        </div>
+        <a href="https://ahn-lab.org/google-timeline-visualizer/privacy/" class="privacy-link" target="_blank" rel="noopener">
+          Read the web app privacy policy
+        </a>
+      </div>
+
+      <!-- Map preview canvas -->
+      <div class="map-preview" id="mapPreview">
+        <canvas id="mapCanvas"></canvas>
+      </div>
+
+      <!-- Output progress (shown during encoding) -->
+      <div class="output-section" id="outputSection">
+        <div id="progressLabel" style="font-size:0.8125rem;color:var(--text-muted);text-align:center">
+          Preparing…
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div id="statusEl" style="font-size:0.8125rem;color:var(--text-muted);text-align:center"></div>
+      </div>
+
+      <!-- Action buttons (shown after file load) -->
+      <div class="btn-row" id="actionRow" style="display:none">
+        <button class="btn btn-outline" id="previewBtn">Preview</button>
+        <button class="btn btn-primary" id="createBtn" disabled>Create MP4</button>
+      </div>
+    </div>
+
+    <footer>
+      No account, location permission, or Timeline upload is required.<br>
+      Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+      contributors and © <a href="https://carto.com/attribution" target="_blank" rel="noopener">CARTO</a>.<br>
+      <a href="#">Third-party notices</a>
+    </footer>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
