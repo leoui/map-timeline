@@ -53,13 +53,14 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 
 /**
- * Mux the encoded chunks into an MP4 and download it.
+ * Mux the encoded chunks into an MP4 and return the bytes. Does NOT save — call
+ * saveVideo() from a user gesture (a button click) so the save dialog can open.
  *
  * @param {import('./encoder.js').EncoderResult} result
  * @param {import('../types.js').VideoSettings} settings
- * @returns {Promise<ArrayBuffer>}  - The MP4 bytes (also triggers download)
+ * @returns {Promise<ArrayBuffer>}  - The MP4 bytes
  */
-export async function muxAndDownload(result, settings) {
+export async function muxToBuffer(result, settings) {
   if (!result || !Array.isArray(result.chunks) || result.chunks.length === 0) {
     throw new Error('No encoded video chunks to mux.');
   }
@@ -81,10 +82,43 @@ export async function muxAndDownload(result, settings) {
   });
 
   muxer.finalize();
-  const buffer = target.buffer; // ArrayBuffer
+  return target.buffer; // ArrayBuffer
+}
 
-  downloadBuffer(buffer, sanitiseFilename(settings.title) + '.mp4');
-  return buffer;
+/**
+ * Save an MP4 buffer. Prefers the File System Access API so the user gets a
+ * "save as" dialog to choose the folder and filename; falls back to a direct
+ * download (straight to the browser's Downloads folder) where that API is
+ * unavailable (e.g. Firefox, or non-secure contexts).
+ *
+ * MUST be called from within a user gesture (e.g. a click handler) — the save
+ * picker requires transient activation and will otherwise throw.
+ *
+ * @param {ArrayBuffer} buffer
+ * @param {import('../types.js').VideoSettings} settings
+ * @returns {Promise<'saved'|'cancelled'|'downloaded'>}
+ */
+export async function saveVideo(buffer, settings) {
+  const filename = sanitiseFilename(settings.title) + '.mp4';
+
+  if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'MP4 video', accept: { 'video/mp4': ['.mp4'] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(buffer);
+      await writable.close();
+      return 'saved';
+    } catch (err) {
+      if (err && err.name === 'AbortError') return 'cancelled'; // user closed the dialog
+      // Any other error (e.g. permission) → fall through to a direct download.
+    }
+  }
+
+  downloadBuffer(buffer, filename);
+  return 'downloaded';
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
