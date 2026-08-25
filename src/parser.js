@@ -15,6 +15,15 @@
  *    { semanticSegments: [ { timelinePath: [ { point, time }, … ] }, … ] }
  *    where `point` is "geo:LAT,LNG"
  *
+ *  Format D  (2024+ on-device) — phone "Timeline" export, "location-history.json"
+ *    A BARE top-level array of segment records, each with startTime/endTime and
+ *    one of:
+ *      { visit:    { topCandidate: { placeLocation: "geo:LAT,LNG" } } }
+ *      { activity: { start: "geo:LAT,LNG", end: "geo:LAT,LNG" } }
+ *      { timelinePath: [ { point: "geo:LAT,LNG",
+ *                          durationMinutesOffsetFromStartTime: "73" }, … ] }
+ *      { timelineMemory: … }   ← no coordinates, ignored
+ *
  * This module tries each format in order and falls back gracefully.
  */
 
@@ -39,8 +48,12 @@ export function parseTimeline(raw, opts = {}) {
     // Some exports wrap everything in timelineObjects
     points = parseTimelineObjects(raw.timelineObjects);
   } else if (Array.isArray(raw)) {
-    // Bare array — try treating each item as a location
-    points = parseFormatAB(raw);
+    // Bare array. Could be the on-device "Timeline" export (Format D) whose
+    // items are visit/activity/timelinePath records, or an old-style bare list
+    // of latitudeE7 locations (Format A/B).
+    points = looksLikeMobileTimeline(raw)
+      ? parseFormatMobile(raw)
+      : parseFormatAB(raw);
   } else {
     throw new Error(
       'Unrecognised Timeline format. Expected a JSON file exported from Google Maps Timeline.'
@@ -97,6 +110,62 @@ function parseFormatC(segments) {
       const lng = (seg.startLocation.longitudeE7 ?? 0) / 1e7;
       if (isValidCoord(lat, lng) && ts != null) out.push({ lat, lng, timestampMs: ts });
     }
+  }
+  return out;
+}
+
+// ── Format D (on-device "Timeline" export — bare array) ───────────────────────
+
+/**
+ * Heuristic: does this bare array look like the on-device Timeline export?
+ * Checks the first handful of items for the tell-tale record keys.
+ * @param {any[]} arr
+ * @returns {boolean}
+ */
+function looksLikeMobileTimeline(arr) {
+  for (const rec of arr.slice(0, 20)) {
+    if (rec && typeof rec === 'object' &&
+        (rec.visit || rec.activity || rec.timelinePath || rec.timelineMemory)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function parseFormatMobile(records) {
+  const out = [];
+  for (const rec of records) {
+    const startMs = parseTimestamp(rec.startTime);
+    const endMs = parseTimestamp(rec.endTime);
+
+    // A stationary visit: one point at the start of the segment.
+    if (rec.visit) {
+      const coord = parseGeoPoint(rec.visit.topCandidate?.placeLocation);
+      if (coord && startMs != null) {
+        out.push({ lat: coord.lat, lng: coord.lng, timestampMs: startMs });
+      }
+    }
+
+    // A movement activity: start point at startTime, end point at endTime.
+    if (rec.activity) {
+      const s = parseGeoPoint(rec.activity.start);
+      const e = parseGeoPoint(rec.activity.end);
+      if (s && startMs != null) out.push({ lat: s.lat, lng: s.lng, timestampMs: startMs });
+      if (e && endMs != null) out.push({ lat: e.lat, lng: e.lng, timestampMs: endMs });
+    }
+
+    // A dense path: each point carries a minute offset from the segment start.
+    if (Array.isArray(rec.timelinePath) && startMs != null) {
+      for (const entry of rec.timelinePath) {
+        const coord = parseGeoPoint(entry.point);
+        if (!coord) continue;
+        const offMin = Number(entry.durationMinutesOffsetFromStartTime);
+        const ts = isFinite(offMin) ? startMs + offMin * 60_000 : startMs;
+        out.push({ lat: coord.lat, lng: coord.lng, timestampMs: ts });
+      }
+    }
+
+    // timelineMemory and any other record types carry no coordinates.
   }
   return out;
 }
