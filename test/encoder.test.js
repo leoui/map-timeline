@@ -11,7 +11,7 @@ describe('bitrateForFormat', () => {
 });
 
 // supportsH264 exercises the codec-candidate selection: it must accept a device
-// that only supports High/Main profiles (not Baseline L3.1) — the exact case
+// that only supports High/Main profiles (not Baseline L3.1) - the exact case
 // that previously forced a QuickTime-incompatible VP9 fallback at 1080p.
 describe('supportsH264 codec selection', () => {
   afterEach(() => {

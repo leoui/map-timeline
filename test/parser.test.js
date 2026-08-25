@@ -3,7 +3,7 @@ import { parseTimeline, summarise } from '../src/parser.js';
 
 // ── Format D: on-device "Timeline" export (bare top-level array) ────────────────
 
-describe('parseTimeline — on-device Timeline export (bare array)', () => {
+describe('parseTimeline - on-device Timeline export (bare array)', () => {
   const mobile = [
     {
       startTime: '2014-05-23T14:13:07.613+07:00',
@@ -61,7 +61,7 @@ describe('parseTimeline — on-device Timeline export (bare array)', () => {
 
 // ── Legacy formats still work ──────────────────────────────────────────────────
 
-describe('parseTimeline — legacy formats', () => {
+describe('parseTimeline - legacy formats', () => {
   it('parses Format A (latitudeE7 + timestampMs)', () => {
     const raw = {
       locations: [

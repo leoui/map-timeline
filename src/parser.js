@@ -5,17 +5,17 @@
  *
  * Google has shipped at least three incompatible formats over the years:
  *
- *  Format A  (pre-2022) — exported as "location-history.json"
+ *  Format A  (pre-2022) - exported as "location-history.json"
  *    { locations: [ { timestampMs, latitudeE7, longitudeE7 }, … ] }
  *
- *  Format B  (2022–2024) — exported as "Records.json"
+ *  Format B  (2022-2024) - exported as "Records.json"
  *    { locations: [ { timestamp (ISO string), latitudeE7, longitudeE7 }, … ] }
  *
- *  Format C  (2024+) — exported as "Timeline.json" or "Semantic Location History"
+ *  Format C  (2024+) - exported as "Timeline.json" or "Semantic Location History"
  *    { semanticSegments: [ { timelinePath: [ { point, time }, … ] }, … ] }
  *    where `point` is "geo:LAT,LNG"
  *
- *  Format D  (2024+ on-device) — phone "Timeline" export, "location-history.json"
+ *  Format D  (2024+ on-device) - phone "Timeline" export, "location-history.json"
  *    A BARE top-level array of segment records, each with startTime/endTime and
  *    one of:
  *      { visit:    { topCandidate: { placeLocation: "geo:LAT,LNG" } } }
@@ -114,7 +114,7 @@ function parseFormatC(segments) {
   return out;
 }
 
-// ── Format D (on-device "Timeline" export — bare array) ───────────────────────
+// ── Format D (on-device "Timeline" export - bare array) ───────────────────────
 
 /**
  * Heuristic: does this bare array look like the on-device Timeline export?

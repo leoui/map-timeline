@@ -1,7 +1,7 @@
 /**
  * projection.js
  *
- * Web Mercator (EPSG:3857) utilities — the coordinate system used by
+ * Web Mercator (EPSG:3857) utilities - the coordinate system used by
  * OpenStreetMap, Google Maps, and CARTO.
  *
  * At zoom level Z:

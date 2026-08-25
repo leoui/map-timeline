@@ -110,7 +110,7 @@ export function showJourneyUI() {
   show('actionRow', 'flex'); // flex column so the button gap/spacing applies
 }
 
-/** Switch UI into encoding state — disable controls, show progress. */
+/** Switch UI into encoding state - disable controls, show progress. */
 export function setEncodingState() {
   show('outputSection');
   setDisabled(['createBtn', 'previewBtn', 'fileInput', 'sampleBtn'], true);

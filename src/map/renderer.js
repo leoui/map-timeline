@@ -12,7 +12,7 @@ import { fetchTile } from './tiles.js';
  * Draw the map background and journey path onto a canvas.
  *
  * The trail is drawn through EXACTLY the points in `path`, and the head dot sits
- * at the last of them — so callers pass the same interpolated positions the
+ * at the last of them - so callers pass the same interpolated positions the
  * camera is centred on, keeping dot, trail, and camera in sync. For the video
  * this is frames[0..current]; for the static preview it's the full journey.
  *
@@ -51,7 +51,7 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
   const tileDrawCalls = [];
   for (let tx = tileX0; tx <= tileX1; tx++) {
     for (let ty = tileY0; ty <= tileY1; ty++) {
-      // Above/below the map (poles) there are no tiles — leave the water base.
+      // Above/below the map (poles) there are no tiles - leave the water base.
       if (ty < 0 || ty >= worldTiles) continue;
 
       const destX = tx * TILE_SIZE - originPx;
@@ -88,7 +88,7 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
   ctx.shadowColor = 'rgba(0,0,0,0.25)';
   ctx.shadowBlur = 4;
 
-  // Trail line — dotted. (setLineDash is part of the saved drawing state, so the
+  // Trail line - dotted. (setLineDash is part of the saved drawing state, so the
   // restore() below clears it before the solid dots/rings are drawn.)
   ctx.beginPath();
   ctx.moveTo(canvasPts[0].x, canvasPts[0].y);

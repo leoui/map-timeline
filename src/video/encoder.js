@@ -3,7 +3,7 @@
  *
  * WebCodecs VideoEncoder pipeline.
  *
- * STATUS: STUB — the shell is here, implementation needs completing.
+ * STATUS: STUB - the shell is here, implementation needs completing.
  *
  *
  * ── What this module must do ──────────────────────────────────────────────────
@@ -27,13 +27,13 @@
  *
  *    NOTE: mp4-muxer expects the codec string 'avc' in its Muxer config but
  *    the browser's VideoEncoder takes the full MIME codec string 'avc1.42001f'.
- *    They are different things — don't mix them up.
+ *    They are different things - don't mix them up.
  *
  *    For VP9 as a fallback (when H.264 hardware encoder is unavailable):
  *      codec: 'vp09.00.10.08'
  *    and set `avc: undefined`, `mp4-muxer` codec: 'vp9'.
  *
- * 3. Frame loop — for each frame index 0..totalFrames-1:
+ * 3. Frame loop - for each frame index 0..totalFrames-1:
  *      a. await compositor.drawFrame(frameIndex)
  *      b. const videoFrame = new VideoFrame(compositor.canvas, {
  *           timestamp: (frameIndex / settings.fps) * 1_000_000,  // microseconds
@@ -134,7 +134,7 @@ export async function encode(compositor, frames, settings, onProgress) {
 
   // Prefer H.264 so the result plays in QuickTime / Safari / iOS (which do NOT
   // support VP9). We try High and Main profiles at a level high enough for the
-  // resolution before Baseline — Baseline L3.1 (avc1.42001f) can't handle 1080p,
+  // resolution before Baseline - Baseline L3.1 (avc1.42001f) can't handle 1080p,
   // so requesting only it makes capable machines fall back to VP9 needlessly.
   const h264Config = await pickH264Config(baseConfig);
   if (h264Config) {

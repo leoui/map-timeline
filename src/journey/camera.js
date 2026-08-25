@@ -5,17 +5,17 @@
  * based on the selected camera mode.
  *
  * Modes:
- *  'fixed'    — Static viewport showing the full journey, no movement
- *  'steady'   — Follows the current dot smoothly; zoom stays constant
- *  'dynamic'  — Follows the dot AND zooms in/out based on upcoming path density
- *  'closeup'  — Tight follow; highest zoom, shows neighbourhood-level detail
+ *  'fixed'    - Static viewport showing the full journey, no movement
+ *  'steady'   - Follows the current dot smoothly; zoom stays constant
+ *  'dynamic'  - Follows the dot AND zooms in/out based on upcoming path density
+ *  'closeup'  - Tight follow; highest zoom, shows neighbourhood-level detail
  */
 
 import { fitZoom, centroid, latLngToPixel, pixelToLatLng } from '../map/projection.js';
 
 /**
  * Nudge a (smoothed) camera centre so the moving dot stays within a central
- * safe zone — `marginFrac` of the half-viewport from centre. Light exponential
+ * safe zone - `marginFrac` of the half-viewport from centre. Light exponential
  * smoothing alone lags without bound when the journey moves fast, letting the
  * dot run off-screen; this guarantees the dot is always framed while still
  * allowing smooth drift when motion is slow.
@@ -90,7 +90,7 @@ export function createCameraState(points, settings) {
 }
 
 /**
- * The representative integer zoom the camera renders at for a given mode — used
+ * The representative integer zoom the camera renders at for a given mode - used
  * to prefetch the right tiles. For 'dynamic' this returns the base zoom; the
  * mode fluctuates ±2 around it and any misses fall back to on-demand fetching.
  *

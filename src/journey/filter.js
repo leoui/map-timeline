@@ -14,7 +14,7 @@
 import { haversineMetres } from '../map/projection.js';
 
 // Maximum realistic speed for any common mode of transport
-// (commercial aircraft ~900 km/h — set high to avoid filtering flight data)
+// (commercial aircraft ~900 km/h - set high to avoid filtering flight data)
 const MAX_SPEED_KMH = 1100;
 
 // A spike: the point is an outlier if it's faster than MAX_SPEED_KMH
@@ -43,19 +43,19 @@ function conservativeFilter(points) {
     const distPrev = haversineMetres(prev.lat, prev.lng, curr.lat, curr.lng) / 1000; // km
 
     if (dtPrev <= 0) {
-      // Duplicate or reversed timestamp — skip
+      // Duplicate or reversed timestamp - skip
       continue;
     }
 
     const speedKmh = distPrev / dtPrev;
 
     if (speedKmh > MAX_SPEED_KMH) {
-      // Suspect point — check if next snaps back close to prev
+      // Suspect point - check if next snaps back close to prev
       const distCurrNext = haversineMetres(curr.lat, curr.lng, next.lat, next.lng) / 1000;
       const distPrevNext = haversineMetres(prev.lat, prev.lng, next.lat, next.lng) / 1000;
 
       if (distPrevNext < distCurrNext * SNAP_BACK_RATIO) {
-        // It's a spike — drop curr
+        // It's a spike - drop curr
         continue;
       }
     }

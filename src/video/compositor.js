@@ -135,7 +135,7 @@ function drawHUD(ctx, frame, settings, meta) {
   ctx.fillText('© OpenStreetMap contributors  © CARTO', 10 * scale, height - 8 * scale);
   ctx.restore();
 
-  // ── Social handle (bottom-right) — same styling as the attribution ───────
+  // ── Social handle (bottom-right) - same styling as the attribution ───────
   const handle = (settings.socialHandle || '').trim();
   if (handle) {
     const platform = settings.socialPlatform || 'Instagram';

@@ -7,7 +7,7 @@
   "compatibility_date": "2026-08-25",
   "assets": {
     "directory": "./dist",
-    // Single index.html, no client-side router — serve it at the root and
+    // Single index.html, no client-side router - serve it at the root and
     // return the 404 asset for unknown paths (default behaviour is fine).
     "not_found_handling": "404-page"
   }

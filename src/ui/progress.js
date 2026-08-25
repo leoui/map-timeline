@@ -77,7 +77,7 @@ export function bindToDOM({ labelEl, fillEl, statusEl }) {
 
   on('tiles:progress', ({ loaded, total }) => {
     setLabel(labelEl, `Fetching map tiles (${loaded} / ${total})…`);
-    setFill(fillEl, (loaded / total) * 30); // tiles = 0–30%
+    setFill(fillEl, (loaded / total) * 30); // tiles = 0-30%
   });
 
   on('tiles:done', () => {
@@ -89,7 +89,7 @@ export function bindToDOM({ labelEl, fillEl, statusEl }) {
   });
 
   on('encode:progress', ({ encoded, total }) => {
-    const pct = 30 + (encoded / total) * 60; // encoding = 30–90%
+    const pct = 30 + (encoded / total) * 60; // encoding = 30-90%
     setLabel(labelEl, `Encoding video… (${encoded} / ${total} frames)`);
     setFill(fillEl, pct);
   });

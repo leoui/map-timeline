@@ -29,7 +29,7 @@
  * @typedef {Object} Viewport
  * @property {number} centerLat
  * @property {number} centerLng
- * @property {number} zoom         - OSM zoom level 1–19
+ * @property {number} zoom         - OSM zoom level 1-19
  */
 
 /**

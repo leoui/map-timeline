@@ -4,7 +4,7 @@
  * Wraps mp4-muxer to produce a valid MP4 from encoded WebCodecs chunks,
  * then triggers a browser download.
  *
- * STATUS: STUB — implement following the spec below.
+ * STATUS: STUB - implement following the spec below.
  *
  * ── What this module must do ──────────────────────────────────────────────────
  *
@@ -16,7 +16,7 @@
  *      const muxer = new Muxer({
  *        target,
  *        video: {
- *          codec: result.codec,    // 'avc' or 'vp9' — from encoder.js
+ *          codec: result.codec,    // 'avc' or 'vp9' - from encoder.js
  *          width: settings.width,
  *          height: settings.height,
  *        },
@@ -53,7 +53,7 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer';
 
 /**
- * Mux the encoded chunks into an MP4 and return the bytes. Does NOT save — call
+ * Mux the encoded chunks into an MP4 and return the bytes. Does NOT save - call
  * saveVideo() from a user gesture (a button click) so the save dialog can open.
  *
  * @param {import('./encoder.js').EncoderResult} result
@@ -69,7 +69,7 @@ export async function muxToBuffer(result, settings) {
   const muxer = new Muxer({
     target,
     video: {
-      codec: result.codec, // 'avc' or 'vp9' — from encoder.js
+      codec: result.codec, // 'avc' or 'vp9' - from encoder.js
       width: settings.width,
       height: settings.height,
     },
@@ -97,7 +97,7 @@ export async function muxToBuffer(result, settings) {
  * some systems. After writing we verify the file is non-empty and, only if it
  * isn't, fall back to a direct download so the user never ends up with 0 bytes.
  *
- * MUST be called from within a user gesture (e.g. a click handler) — the save
+ * MUST be called from within a user gesture (e.g. a click handler) - the save
  * picker requires transient activation and will otherwise throw.
  *
  * @param {Blob} blob
@@ -133,10 +133,10 @@ export async function saveVideo(blob, settings) {
           const written = await handle.getFile();
           if (written.size > 0) return 'saved';
         } catch {
-          return 'saved'; // can't re-read (permission) — assume the write worked
+          return 'saved'; // can't re-read (permission) - assume the write worked
         }
       } catch {
-        // Write threw after the user picked a file — fall through and still
+        // Write threw after the user picked a file - fall through and still
         // deliver the video via a direct download rather than losing it.
       }
     }

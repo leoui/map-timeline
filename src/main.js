@@ -206,7 +206,7 @@ async function onPreview() {
   canvas.width = size;
   canvas.height = size;
 
-  // Quick static preview — just show the full journey at zoom-fit
+  // Quick static preview - just show the full journey at zoom-fit
   const { renderMap } = await import('./map/renderer.js');
   const { centroid } = await import('./map/projection.js');
   const zoom = fitZoom(loadedPoints, size, size, 40);
@@ -314,13 +314,13 @@ function showDownloadButton(settings) {
 }
 
 async function onDownload() {
-  if (!lastVideo || saving) return; // ignore re-entrant clicks — one dialog at a time
+  if (!lastVideo || saving) return; // ignore re-entrant clicks - one dialog at a time
   saving = true;
   const btn = document.getElementById('dlBtn');
   if (btn) btn.disabled = true;
   try {
     const outcome = await saveVideo(lastVideo.blob, lastVideo.settings);
-    if (outcome === 'cancelled') return; // user closed the save dialog — no-op
+    if (outcome === 'cancelled') return; // user closed the save dialog - no-op
   } catch (err) {
     showError(`Could not save the video: ${err.message}`);
   } finally {

@@ -5,7 +5,7 @@
  *
  * Tile URL format:
  *   https://tile.openstreetmap.org/{z}/{x}/{y}.png
- *   https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png  (preferred — no User-Agent policy)
+ *   https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png  (preferred - no User-Agent policy)
  *
  * OSM's tile usage policy requires a descriptive User-Agent and forbids
  * high-volume automated requests. CARTO's free tier is more permissive for
@@ -58,7 +58,7 @@ function cacheKey(z, x, y) {
  * We append a stable `cors=1` marker to the tile URL. CDNs (notably CARTO's)
  * can cache a copy of a tile WITHOUT an `Access-Control-Allow-Origin` header
  * when the first requester wasn't a CORS client, and then serve that headerless
- * copy to our `fetch()` — which the browser then blocks. Requesting a distinct
+ * copy to our `fetch()` - which the browser then blocks. Requesting a distinct
  * query-string variant that only this app (always a CORS client) ever asks for
  * guarantees the cached entry carries the CORS header.
  */
@@ -161,7 +161,7 @@ export async function prefetchTiles(points, z, onProgress) {
 /**
  * Pre-fetch the tiles the journey PATH passes through at zoom `z`, plus a
  * one-tile halo around each. Unlike prefetchTiles (which covers the whole
- * bounding box), this only warms the thin strip the camera actually follows —
+ * bounding box), this only warms the thin strip the camera actually follows -
  * essential for the follow/close-up camera modes, whose render zoom is several
  * levels deeper than the fit-zoom, where a full-box prefetch would be enormous
  * and mostly unused.

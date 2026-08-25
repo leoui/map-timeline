@@ -2,7 +2,7 @@
  * interpolate.js
  *
  * Converts a sparse set of LocationPoints (one per GPS ping, maybe minutes apart)
- * into a dense array of AnimFrames — one per video frame — by linearly
+ * into a dense array of AnimFrames - one per video frame - by linearly
  * interpolating position along the path.
  *
  * The interpolation is arc-length-based: frames are spaced evenly along the
@@ -26,7 +26,7 @@ import { haversineMetres } from '../map/projection.js';
 export function buildFrames(points, totalFrames, ease = (t) => t) {
   if (points.length === 0) return [];
   if (points.length === 1) {
-    // Single-point journey — hold still
+    // Single-point journey - hold still
     return Array.from({ length: totalFrames }, (_, i) => ({
       lat: points[0].lat,
       lng: points[0].lng,
