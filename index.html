@@ -428,10 +428,13 @@
     .consent input[type="checkbox"] {
       appearance: none; -webkit-appearance: none;
       width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
-      border: 2px solid var(--border-strong); background: var(--surface);
+      /* High-contrast rose outline so the box is clearly visible in every
+         browser and theme (a theme-coloured border was too low-contrast on the
+         dark panel and vanished in some Chromium builds, e.g. Brave). */
+      border: 2px solid var(--rose); background: var(--surface);
       cursor: pointer; position: relative; transition: background 0.15s, border-color 0.15s;
     }
-    .consent input[type="checkbox"]:hover { border-color: var(--rose); }
+    .consent input[type="checkbox"]:hover { border-color: var(--rose-hover); }
     .consent input[type="checkbox"]:checked { background: var(--rose); border-color: var(--rose); }
     .consent input[type="checkbox"]:checked::after {
       content: ''; position: absolute; left: 7px; top: 3px; width: 5px; height: 10px;
@@ -812,7 +815,7 @@
         Google Maps and Google are trademarks of Google LLC.
       </p>
       <a href="/third-party-notices.txt" class="tp-link" target="_blank" rel="noopener" data-i18n="tp.notices">Third-party notices</a>
-      <div class="version" id="appVersion">Version: 20260826.Z02</div>
+      <div class="version" id="appVersion">Version: 20260826.U02</div>
     </footer>
   </div>
 
