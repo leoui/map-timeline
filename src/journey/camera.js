@@ -11,7 +11,33 @@
  *  'closeup'  — Tight follow; highest zoom, shows neighbourhood-level detail
  */
 
-import { fitZoom, centroid } from '../map/projection.js';
+import { fitZoom, centroid, latLngToPixel, pixelToLatLng } from '../map/projection.js';
+
+/**
+ * Nudge a (smoothed) camera centre so the moving dot stays within a central
+ * safe zone — `marginFrac` of the half-viewport from centre. Light exponential
+ * smoothing alone lags without bound when the journey moves fast, letting the
+ * dot run off-screen; this guarantees the dot is always framed while still
+ * allowing smooth drift when motion is slow.
+ *
+ * @returns {{ centerLat: number, centerLng: number }}
+ */
+function clampCenterToDot(centerLat, centerLng, dotLat, dotLng, zoom, settings, marginFrac = 0.35) {
+  const c = latLngToPixel(centerLat, centerLng, zoom);
+  const h = latLngToPixel(dotLat, dotLng, zoom);
+  const maxX = settings.width * 0.5 * marginFrac;
+  const maxY = settings.height * 0.5 * marginFrac;
+
+  let cx = c.px;
+  let cy = c.py;
+  const dx = h.px - cx;
+  const dy = h.py - cy;
+  if (dx > maxX) cx += dx - maxX; else if (dx < -maxX) cx += dx + maxX;
+  if (dy > maxY) cy += dy - maxY; else if (dy < -maxY) cy += dy + maxY;
+
+  const ll = pixelToLatLng(cx, cy, zoom);
+  return { centerLat: ll.lat, centerLng: ll.lng };
+}
 
 /**
  * @param {import('../types.js').LocationPoint[]} points  - All filtered points
@@ -23,9 +49,9 @@ import { fitZoom, centroid } from '../map/projection.js';
 export function getViewport(points, frame, settings, state) {
   switch (settings.cameraMode) {
     case 'fixed':   return fixedViewport(state);
-    case 'steady':  return steadyViewport(frame, state);
+    case 'steady':  return steadyViewport(frame, settings, state);
     case 'dynamic': return dynamicViewport(points, frame, settings, state);
-    case 'closeup': return closeupViewport(frame, state);
+    case 'closeup': return closeupViewport(frame, settings, state);
     default:        return fixedViewport(state);
   }
 }
@@ -104,17 +130,20 @@ function fixedViewport(state) {
   };
 }
 
-function steadyViewport(frame, state) {
-  // Exponential smoothing — lerp factor controls lag
-  const α = 0.08;
+function steadyViewport(frame, settings, state) {
+  // Exponential smoothing for a cinematic drift…
+  const α = 0.15;
   state.smoothLat += (frame.lat - state.smoothLat) * α;
   state.smoothLng += (frame.lng - state.smoothLng) * α;
 
-  return {
-    centerLat: state.smoothLat,
-    centerLng: state.smoothLng,
-    zoom: state.followZoom,
-  };
+  // …then clamp so the dot stays framed (and write back so lag can't accumulate).
+  const { centerLat, centerLng } = clampCenterToDot(
+    state.smoothLat, state.smoothLng, frame.lat, frame.lng, state.followZoom, settings
+  );
+  state.smoothLat = centerLat;
+  state.smoothLng = centerLng;
+
+  return { centerLat, centerLng, zoom: state.followZoom };
 }
 
 function dynamicViewport(points, frame, settings, state) {
@@ -135,27 +164,33 @@ function dynamicViewport(points, frame, settings, state) {
     );
   }
 
-  const α = 0.05;
+  const α = 0.12;
   state.smoothLat  += (frame.lat  - state.smoothLat)  * α;
   state.smoothLng  += (frame.lng  - state.smoothLng)  * α;
   state.smoothZoom += (targetZoom - state.smoothZoom) * α;
 
-  return {
-    centerLat: state.smoothLat,
-    centerLng: state.smoothLng,
-    zoom: Math.round(state.smoothZoom), // tiles use integer zoom
-  };
+  const zoom = Math.round(state.smoothZoom); // tiles use integer zoom
+  const { centerLat, centerLng } = clampCenterToDot(
+    state.smoothLat, state.smoothLng, frame.lat, frame.lng, zoom, settings
+  );
+  state.smoothLat = centerLat;
+  state.smoothLng = centerLng;
+
+  return { centerLat, centerLng, zoom };
 }
 
-function closeupViewport(frame, state) {
-  // Faster follow, higher zoom
-  const α = 0.15;
+function closeupViewport(frame, settings, state) {
+  // Faster follow, higher zoom, tighter safe zone.
+  const zoom = Math.min(17, state.followZoom + 1);
+  const α = 0.25;
   state.smoothLat += (frame.lat - state.smoothLat) * α;
   state.smoothLng += (frame.lng - state.smoothLng) * α;
 
-  return {
-    centerLat: state.smoothLat,
-    centerLng: state.smoothLng,
-    zoom: Math.min(17, state.followZoom + 1),
-  };
+  const { centerLat, centerLng } = clampCenterToDot(
+    state.smoothLat, state.smoothLng, frame.lat, frame.lng, zoom, settings, 0.25
+  );
+  state.smoothLat = centerLat;
+  state.smoothLng = centerLng;
+
+  return { centerLat, centerLng, zoom };
 }

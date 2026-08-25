@@ -37,7 +37,10 @@ export function createCompositor(points, frames, settings, cameraState) {
       const frame = frames[i];
       const viewport = getViewport(points, frame, settings, cameraState);
 
-      await renderMap(canvas, points, viewport, frame.progressRatio);
+      // Trail = the interpolated positions up to and including this frame, so
+      // the drawn line ends exactly at the head dot the camera is following.
+      const path = frames.slice(0, i + 1);
+      await renderMap(canvas, path, viewport, { pulsePhase: frame.progressRatio });
       drawHUD(ctx, frame, settings, viewport);
     },
   };

@@ -191,7 +191,7 @@ async function onPreview() {
   const { centroid } = await import('./map/projection.js');
   const zoom = fitZoom(loadedPoints, size, size, 40);
   const { lat, lng } = centroid(loadedPoints);
-  await renderMap(canvas, loadedPoints, { centerLat: lat, centerLng: lng, zoom }, 1.0);
+  await renderMap(canvas, loadedPoints, { centerLat: lat, centerLng: lng, zoom }, {});
 }
 
 // ── Encode ────────────────────────────────────────────────────────────────────
@@ -211,7 +211,7 @@ async function onCreateMP4() {
   try {
     const settings     = controls.readSettings();
     const totalFrames  = settings.fps * settings.durationSec;
-    const frames       = easeInOut(buildFrames(loadedPoints, totalFrames));
+    const frames       = buildFrames(loadedPoints, totalFrames, easeInOut);
     const cameraState  = createCameraState(loadedPoints, settings);
     const compositor   = createCompositor(loadedPoints, frames, settings, cameraState);
 
