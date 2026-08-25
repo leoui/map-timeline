@@ -44,6 +44,9 @@ let loadedFilename = '';
  */
 let lastVideo = null;
 
+/** Guard against overlapping save dialogs (e.g. a double-click on Download). */
+let saving = false;
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 (async function init() {
@@ -284,11 +287,17 @@ function showDownloadButton(settings) {
 }
 
 async function onDownload() {
-  if (!lastVideo) return;
+  if (!lastVideo || saving) return; // ignore re-entrant clicks — one dialog at a time
+  saving = true;
+  const btn = document.getElementById('dlBtn');
+  if (btn) btn.disabled = true;
   try {
     const outcome = await saveVideo(lastVideo.buffer, lastVideo.settings);
     if (outcome === 'cancelled') return; // user closed the save dialog — no-op
   } catch (err) {
     showError(`Could not save the video: ${err.message}`);
+  } finally {
+    saving = false;
+    if (btn) btn.disabled = false;
   }
 }

@@ -102,18 +102,26 @@ export async function saveVideo(buffer, settings) {
   const filename = sanitiseFilename(settings.title) + '.mp4';
 
   if (typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function') {
+    // Step 1: open the picker. Only failures HERE justify the download fallback
+    // (user cancelled, or the API is present but unusable in this context).
+    let handle;
     try {
-      const handle = await window.showSaveFilePicker({
+      handle = await window.showSaveFilePicker({
         suggestedName: filename,
         types: [{ description: 'MP4 video', accept: { 'video/mp4': ['.mp4'] } }],
       });
+    } catch (err) {
+      if (err && err.name === 'AbortError') return 'cancelled'; // user closed the dialog
+      handle = null; // API unusable → fall back to a plain download below
+    }
+
+    // Step 2: once the user has picked a file, write to it. A write error here
+    // must NOT fall back to downloadBuffer — that would pop a second dialog.
+    if (handle) {
       const writable = await handle.createWritable();
       await writable.write(buffer);
       await writable.close();
       return 'saved';
-    } catch (err) {
-      if (err && err.name === 'AbortError') return 'cancelled'; // user closed the dialog
-      // Any other error (e.g. permission) → fall through to a direct download.
     }
   }
 
