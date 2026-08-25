@@ -1,7 +1,7 @@
 {
-  "name": "timeline-visualizer",
+  "name": "googlemap-visualizer",
   "version": "1.0.0",
-  "description": "Visualize your Google Timeline as an MP4 video — all processing stays on-device.",
+  "description": "GoogleMap Visualizer — animate your Google Maps Timeline as an MP4 video, all processing stays on-device.",
   "type": "module",
   "scripts": {
     "dev": "vite",

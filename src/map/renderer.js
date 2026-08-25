@@ -76,16 +76,20 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
   ctx.shadowColor = 'rgba(0,0,0,0.25)';
   ctx.shadowBlur = 4;
 
-  // Trail line
+  // Trail line — dotted. (setLineDash is part of the saved drawing state, so the
+  // restore() below clears it before the solid dots/rings are drawn.)
   ctx.beginPath();
   ctx.moveTo(canvasPts[0].x, canvasPts[0].y);
   for (let i = 1; i < canvasPts.length; i++) {
     ctx.lineTo(canvasPts[i].x, canvasPts[i].y);
   }
-  ctx.strokeStyle = 'rgba(217, 26, 90, 0.65)';
+  ctx.strokeStyle = 'rgba(217, 26, 90, 0.75)';
   ctx.lineWidth = Math.max(2, width / 200);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
+  // Round-capped near-zero dashes render as circular dots; the gap scales with
+  // line width so the spacing looks consistent across output resolutions.
+  ctx.setLineDash([0.01, ctx.lineWidth * 2.4]);
   ctx.stroke();
   ctx.restore();
 

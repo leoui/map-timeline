@@ -105,7 +105,7 @@ export function applyAvailableRange(minMs, maxMs) {
 export function showJourneyUI() {
   show('statsLine');
   show('privacyBox');
-  show('actionRow');
+  show('actionRow', 'flex'); // flex column so the button gap/spacing applies
 }
 
 /** Switch UI into encoding state — disable controls, show progress. */
