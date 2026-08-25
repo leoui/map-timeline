@@ -137,7 +137,7 @@ export function updateCodecBanner(supported) {
     el.textContent = 'This browser can create H.264 MP4 video.';
     el.style.color = '';
   } else {
-    el.textContent = 'H.264 not supported — will use VP9 (larger files). Chrome 94+ recommended.';
+    el.textContent = 'H.264 not supported, will use VP9 (larger files). Chrome 94+ recommended.';
     el.style.color = '#b45309';
   }
 }

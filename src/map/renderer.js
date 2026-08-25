@@ -41,15 +41,27 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
 
   // ── 3. Draw tiles (use cached bitmaps; skip any that 404) ──────────────────
   ctx.clearRect(0, 0, width, height);
+  // Paint a water-coloured base first so any uncovered area (poles at low zoom,
+  // tiles still loading) reads as ocean instead of a blank card-coloured gap.
+  ctx.fillStyle = '#dfe6ea';
+  ctx.fillRect(0, 0, width, height);
+
+  const worldTiles = Math.pow(2, zoom); // tiles per axis at this zoom
 
   const tileDrawCalls = [];
   for (let tx = tileX0; tx <= tileX1; tx++) {
     for (let ty = tileY0; ty <= tileY1; ty++) {
+      // Above/below the map (poles) there are no tiles — leave the water base.
+      if (ty < 0 || ty >= worldTiles) continue;
+
       const destX = tx * TILE_SIZE - originPx;
       const destY = ty * TILE_SIZE - originPy;
+      // Wrap longitude so a world-spanning journey fills the whole canvas
+      // instead of leaving a blank strip past the antimeridian.
+      const wrappedX = ((tx % worldTiles) + worldTiles) % worldTiles;
 
       tileDrawCalls.push(
-        fetchTile(zoom, tx, ty)
+        fetchTile(zoom, wrappedX, ty)
           .then((bitmap) => ctx.drawImage(bitmap, Math.round(destX), Math.round(destY)))
           .catch(() => {
             // Draw a subtle placeholder for missing tiles
