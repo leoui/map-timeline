@@ -415,7 +415,21 @@
     .privacy-box h3 svg { width: 16px; height: 16px; color: var(--rose); }
     .privacy-box p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.65; margin-bottom: 14px; }
     .consent { display: flex; align-items: center; gap: 11px; cursor: pointer; }
-    .consent input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--rose); cursor: pointer; flex-shrink: 0; }
+    /* Custom checkbox so it stays clearly visible in both light and dark themes
+       (the native control blends into the dark rose panel). */
+    .consent input[type="checkbox"] {
+      appearance: none; -webkit-appearance: none;
+      width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+      border: 2px solid var(--border-strong); background: var(--surface);
+      cursor: pointer; position: relative; transition: background 0.15s, border-color 0.15s;
+    }
+    .consent input[type="checkbox"]:hover { border-color: var(--rose); }
+    .consent input[type="checkbox"]:checked { background: var(--rose); border-color: var(--rose); }
+    .consent input[type="checkbox"]:checked::after {
+      content: ''; position: absolute; left: 7px; top: 3px; width: 5px; height: 10px;
+      border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg);
+    }
+    .consent input[type="checkbox"]:focus-visible { outline: 2px solid var(--rose); outline-offset: 2px; }
     .consent label { font-size: 0.88rem; cursor: pointer; }
     .privacy-link { font-size: 0.8rem; color: var(--rose); text-decoration: none; display: inline-block; margin-top: 12px; }
     .privacy-link:hover { text-decoration: underline; }
@@ -787,7 +801,7 @@
         Google Maps and Google are trademarks of Google LLC.
       </p>
       <a href="/third-party-notices.txt" class="tp-link" target="_blank" rel="noopener" data-i18n="tp.notices">Third-party notices</a>
-      <div class="version" id="appVersion">Version: 20260826.Z01</div>
+      <div class="version" id="appVersion">Version: 20260826.U01</div>
     </footer>
   </div>
 
