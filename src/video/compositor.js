@@ -194,55 +194,14 @@ function drawHUD(ctx, frame, settings, meta) {
   const metersSoFar = totalMeters * frame.progressRatio;
   const distStr = formatDistance(metersSoFar, meta.distanceUnit);
 
-  const subtitle = meta.dateLabel ? `${meta.dateLabel} | ${distStr}` : distStr;
-
-  // ── Card geometry ────────────────────────────────────────────────────────
-  const titlePx = Math.round(21 * scale);
-  const subPx   = Math.round(13 * scale);
-  const padX    = 24 * scale;
-  const padY    = 15 * scale;
-  const lineGap = 7 * scale;
-  const topMargin = 20 * scale;
-  const maxCardW  = width - 32 * scale;
-
-  const titleFont = `600 ${titlePx}px ${FONT_STACK}`;
-  const subFont   = `500 ${subPx}px ${FONT_STACK}`;
-
-  ctx.textBaseline = 'top';
-  ctx.font = titleFont;
-  const drawTitle = ellipsize(ctx, title || '', maxCardW - padX * 2);
-  const titleW = ctx.measureText(drawTitle).width;
-  ctx.font = subFont;
-  const subW = ctx.measureText(subtitle).width;
-
-  const contentW = Math.max(titleW, subW);
-  const cardW = Math.min(contentW + padX * 2, maxCardW);
-  const cardH = padY * 2 + titlePx + lineGap + subPx;
-  const cardX = (width - cardW) / 2;
-  const cardY = topMargin;
-
-  // Card background
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.20)';
-  ctx.shadowBlur = 18 * scale;
-  ctx.shadowOffsetY = 5 * scale;
-  ctx.fillStyle = 'rgba(255,255,255,0.93)';
-  roundRect(ctx, cardX, cardY, cardW, cardH, 16 * scale);
-  ctx.fill();
-  ctx.restore();
-
-  // Title + subtitle, centred
-  ctx.textAlign = 'center';
-  const cx = width / 2;
-
-  ctx.font = titleFont;
-  ctx.fillStyle = '#1C0F15';
-  ctx.fillText(drawTitle, cx, cardY + padY);
-
-  ctx.font = subFont;
-  ctx.fillStyle = '#7D5F6D';
-  ctx.fillText(subtitle, cx, cardY + padY + titlePx + lineGap);
-  ctx.textAlign = 'left';
+  // Strava-connected videos get a stats card (Distance/Time/Pace/Elevation);
+  // everything else gets the date-range + distance card.
+  if (Array.isArray(meta.stats) && meta.stats.length > 0) {
+    drawStatsCard(ctx, width, scale, title, meta.stats, distStr);
+  } else {
+    const subtitle = meta.dateLabel ? `${meta.dateLabel} | ${distStr}` : distStr;
+    drawSubtitleCard(ctx, width, scale, title, subtitle);
+  }
 
   // ── Map attribution (bottom-left) — only when map tiles are shown ────────
   if (meta.showAttribution !== false) {
@@ -271,6 +230,95 @@ function drawHUD(ctx, frame, settings, meta) {
     ctx.fillText(label, width - 10 * scale, height - 8 * scale);
     ctx.restore();
   }
+}
+
+/** The default card: title with a "date range | distance" subtitle. */
+function drawSubtitleCard(ctx, width, scale, title, subtitle) {
+  const titlePx = Math.round(21 * scale);
+  const subPx = Math.round(13 * scale);
+  const padX = 24 * scale, padY = 15 * scale, lineGap = 7 * scale, topMargin = 20 * scale;
+  const maxCardW = width - 32 * scale;
+  const titleFont = `600 ${titlePx}px ${FONT_STACK}`;
+  const subFont = `500 ${subPx}px ${FONT_STACK}`;
+
+  ctx.textBaseline = 'top';
+  ctx.font = titleFont;
+  const drawTitle = ellipsize(ctx, title || '', maxCardW - padX * 2);
+  const titleW = ctx.measureText(drawTitle).width;
+  ctx.font = subFont;
+  const subW = ctx.measureText(subtitle).width;
+
+  const cardW = Math.min(Math.max(titleW, subW) + padX * 2, maxCardW);
+  const cardH = padY * 2 + titlePx + lineGap + subPx;
+  const cardX = (width - cardW) / 2, cardY = topMargin;
+
+  cardBackground(ctx, cardX, cardY, cardW, cardH, scale);
+
+  ctx.textAlign = 'center';
+  ctx.font = titleFont; ctx.fillStyle = '#1C0F15';
+  ctx.fillText(drawTitle, width / 2, cardY + padY);
+  ctx.font = subFont; ctx.fillStyle = '#7D5F6D';
+  ctx.fillText(subtitle, width / 2, cardY + padY + titlePx + lineGap);
+  ctx.textAlign = 'left';
+}
+
+/** The Strava-style card: title over a row of value/label stat columns. */
+function drawStatsCard(ctx, width, scale, title, stats, distStr) {
+  const titlePx = Math.round(20 * scale);
+  const valuePx = Math.round(19 * scale);
+  const labelPx = Math.round(11 * scale);
+  const padX = 22 * scale, padY = 16 * scale, topMargin = 20 * scale;
+  const colGap = 22 * scale, titleGap = 12 * scale, vlGap = 3 * scale;
+  const maxCardW = width - 32 * scale;
+  const titleFont = `600 ${titlePx}px ${FONT_STACK}`;
+  const valueFont = `700 ${valuePx}px ${FONT_STACK}`;
+  const labelFont = `500 ${labelPx}px ${FONT_STACK}`;
+
+  const cols = stats.map((s) => ({ label: s.label, value: s.key === 'distance' ? distStr : (s.value || '') }));
+
+  ctx.textBaseline = 'top';
+  ctx.font = valueFont; const vW = cols.map((c) => ctx.measureText(c.value).width);
+  ctx.font = labelFont; const lW = cols.map((c) => ctx.measureText(c.label).width);
+  const colW = cols.map((_, i) => Math.max(vW[i], lW[i]));
+  const total = colW.reduce((a, b) => a + b, 0) + colGap * Math.max(0, cols.length - 1);
+
+  ctx.font = titleFont;
+  const drawTitle = ellipsize(ctx, title || '', maxCardW - padX * 2);
+  const titleW = ctx.measureText(drawTitle).width;
+
+  const cardW = Math.min(Math.max(total, titleW) + padX * 2, maxCardW);
+  const cardH = padY * 2 + titlePx + titleGap + valuePx + vlGap + labelPx;
+  const cardX = (width - cardW) / 2, cardY = topMargin;
+
+  cardBackground(ctx, cardX, cardY, cardW, cardH, scale);
+
+  ctx.textAlign = 'center';
+  ctx.font = titleFont; ctx.fillStyle = '#1C0F15';
+  ctx.fillText(drawTitle, width / 2, cardY + padY);
+
+  const rowY = cardY + padY + titlePx + titleGap;
+  let x = (width - total) / 2;
+  for (let i = 0; i < cols.length; i++) {
+    const ccx = x + colW[i] / 2;
+    ctx.font = valueFont; ctx.fillStyle = '#1C0F15';
+    ctx.fillText(cols[i].value, ccx, rowY);
+    ctx.font = labelFont; ctx.fillStyle = '#7D5F6D';
+    ctx.fillText(cols[i].label, ccx, rowY + valuePx + vlGap);
+    x += colW[i] + colGap;
+  }
+  ctx.textAlign = 'left';
+}
+
+/** Shared rounded-white card background with a soft shadow. */
+function cardBackground(ctx, x, y, w, h, scale) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.20)';
+  ctx.shadowBlur = 18 * scale;
+  ctx.shadowOffsetY = 5 * scale;
+  ctx.fillStyle = 'rgba(255,255,255,0.93)';
+  roundRect(ctx, x, y, w, h, 16 * scale);
+  ctx.fill();
+  ctx.restore();
 }
 
 /**

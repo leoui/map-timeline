@@ -61,7 +61,7 @@ export async function initStrava({ onActivity, onError, onBusy }) {
         if (points.length < 2) {
           throw new Error('That activity has no GPS route. Pick one recorded outdoors with GPS.');
         }
-        onActivity({ points, title: activity.name || 'Strava activity' });
+        onActivity({ points, title: activity.name || 'Strava activity', activity });
       } catch (e) {
         onError && onError(e.message || 'Could not load that activity.');
       } finally {

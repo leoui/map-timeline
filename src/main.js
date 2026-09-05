@@ -50,6 +50,13 @@ let lastVideo = null;
 /** Guard against overlapping save dialogs (e.g. a double-click on Download). */
 let saving = false;
 
+/**
+ * The Strava activity behind the current data, if it came from Strava, so the
+ * video overlay can show its stats (Time, Pace, Elevation). Null for uploads.
+ * @type {any|null}
+ */
+let stravaActivity = null;
+
 /** Uploaded background photo (ImageBitmap) for photo-overlay mode. */
 let overlayImage = null;
 
@@ -127,8 +134,9 @@ let overlayImage = null;
   // Strava connect + handle the OAuth redirect back.
   document.getElementById('stravaBtn')?.addEventListener('click', stravaConnect);
   initStrava({
-    onActivity: ({ points, title }) => {
+    onActivity: ({ points, title, activity }) => {
       setLoadedData(points, `${title} (Strava)`);
+      stravaActivity = activity || null; // set after load (setLoadedData path clears it)
       const t = document.getElementById('videoTitle');
       if (t) t.value = title;
     },
@@ -235,6 +243,7 @@ function onLoadSample() {
 function setLoadedData(points, filename) {
   allRawPoints = points;
   loadedFilename = filename;
+  stravaActivity = null; // uploads/samples have no Strava stats (re-set by the Strava path)
 
   // Points come back sorted from parseTimeline; guard anyway.
   const minMs = points[0].timestampMs;
@@ -320,6 +329,53 @@ function dateRangeLabel(pts) {
   return start === end ? start : `${start} - ${end}`;
 }
 
+/**
+ * Build the Strava-style overlay stats for an activity, mirroring the Strava
+ * share cards: Distance (animated), Time, Pace, and Elevation gain when notable.
+ * Returns null for non-Strava data so the normal date/distance card is used.
+ * @param {any|null} a  Strava activity summary
+ * @param {string} unit 'km' | 'mi' | 'auto'
+ * @returns {Array<{label:string,value?:string,key?:string}>|null}
+ */
+function stravaStats(a, unit) {
+  if (!a) return null;
+  const T = (k, fallback) => (window.i18nText && window.i18nText(k)) || fallback;
+  const stats = [
+    { key: 'distance', label: T('sv.distance', 'Distance') }, // animates 0 -> total
+    { label: T('sv.time', 'Time'), value: formatDuration(a.moving_time || a.elapsed_time) },
+    { label: T('sv.pace', 'Pace'), value: formatPace(a.average_speed, unit) },
+  ];
+  if (a.total_elevation_gain && a.total_elevation_gain >= 20) {
+    stats.push({ label: T('sv.elev', 'Elev Gain'), value: formatElevation(a.total_elevation_gain, unit) });
+  }
+  return stats;
+}
+
+/** Seconds -> "1h 5m" or "34m 5s". */
+function formatDuration(sec) {
+  sec = Math.round(Number(sec) || 0);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m ${s}s`;
+}
+
+/** Average speed (m/s) -> "6:17 /km" (or /mi). */
+function formatPace(avgSpeed, unit) {
+  if (!avgSpeed || avgSpeed <= 0) return '--';
+  const perUnit = (unit === 'mi' ? 1609.34 : 1000) / avgSpeed; // seconds per km/mi
+  const mm = Math.floor(perUnit / 60);
+  const ss = Math.round(perUnit % 60);
+  return `${mm}:${String(ss).padStart(2, '0')} /${unit === 'mi' ? 'mi' : 'km'}`;
+}
+
+/** Metres -> "120 m" or "394 ft". */
+function formatElevation(m, unit) {
+  return unit === 'mi'
+    ? `${Math.round(m * 3.28084).toLocaleString()} ft`
+    : `${Math.round(m).toLocaleString()} m`;
+}
+
 // ── Preview ───────────────────────────────────────────────────────────────────
 
 async function onPreview() {
@@ -348,6 +404,7 @@ async function onPreview() {
       totalMeters: totalDistanceMetres(loadedPoints),
       distanceUnit: settings.distanceUnit,
       attribution: CURRENT_ATTRIBUTION,
+      stats: stravaStats(stravaActivity, settings.distanceUnit),
       ...bg,
     };
     const comp = createCompositor(loadedPoints, frames, previewSettings, cameraState, meta);
@@ -408,6 +465,7 @@ async function onCreateMP4() {
       totalMeters: totalDistanceMetres(loadedPoints),
       distanceUnit: settings.distanceUnit,
       attribution: CURRENT_ATTRIBUTION,
+      stats: stravaStats(stravaActivity, settings.distanceUnit),
       ...bg,
     };
     const compositor   = createCompositor(loadedPoints, frames, settings, cameraState, meta);
