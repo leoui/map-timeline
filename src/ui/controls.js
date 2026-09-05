@@ -39,6 +39,11 @@ export function readSettings() {
  * Read the date range filter from the form.
  * Returns { startMs, endMs } in Unix milliseconds.
  * If "select exact dates" is unchecked, returns full range.
+ *
+ * Boundaries are the viewer's LOCAL midnight-to-midnight (not UTC). This matches
+ * how people read the date they picked and the local-time time-of-day filter,
+ * and avoids dropping early-morning points that fall on the previous UTC day
+ * (e.g. a 6 AM WIB run is 11 PM UTC the day before).
  * @returns {{ startMs: number, endMs: number }}
  */
 export function readDateRange() {
@@ -48,10 +53,22 @@ export function readDateRange() {
   const startVal = val('startDate');
   const endVal   = val('endDate');
 
-  const startMs = startVal ? Date.parse(startVal) : -Infinity;
-  const endMs   = endVal   ? Date.parse(endVal) + 86_400_000 - 1 : Infinity; // end of day
+  return {
+    startMs: startVal ? localDayStart(startVal) : -Infinity,
+    endMs:   endVal   ? localDayEnd(endVal)     : Infinity,
+  };
+}
 
-  return { startMs, endMs };
+/** Local-time start of a "YYYY-MM-DD" day, in ms. */
+function localDayStart(v) {
+  const [y, m, d] = v.split('-').map(Number);
+  return new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
+}
+
+/** Local-time end of a "YYYY-MM-DD" day, in ms. */
+function localDayEnd(v) {
+  const [y, m, d] = v.split('-').map(Number);
+  return new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
 }
 
 /**
@@ -78,14 +95,19 @@ export function readFilterMode() {
 }
 
 /**
- * Format a Unix-ms timestamp as a YYYY-MM-DD string (UTC) for <input type=date>.
- * UTC matches how readDateRange() interprets the inputs (Date.parse of a bare
- * date is UTC midnight), so the round-trip stays consistent.
+ * Format a Unix-ms timestamp as a LOCAL YYYY-MM-DD string for <input type=date>.
+ * Local matches how readDateRange() interprets the inputs (local midnight), so
+ * the auto-filled range and the available-range hint line up with the days the
+ * viewer actually sees.
  * @param {number} ms
  * @returns {string}
  */
 function toDateInputValue(ms) {
-  return new Date(ms).toISOString().slice(0, 10);
+  const d = new Date(ms);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /**
