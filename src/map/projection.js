@@ -120,6 +120,41 @@ export function fitZoom(points, canvasWidth, canvasHeight, padding = 64) {
 }
 
 /**
+ * Like fitZoom, but returns a FRACTIONAL zoom so the journey fills the frame
+ * as tightly as possible (the renderer scales tiles to match). Integer fitZoom
+ * can leave the route up to ~2x too small because tiles only exist at whole
+ * zoom levels; this avoids that.
+ *
+ * @param {import('../types.js').LocationPoint[]} points
+ * @param {number} canvasWidth
+ * @param {number} canvasHeight
+ * @param {number} [padding=64]
+ * @param {number} [maxZoom=17]
+ * @returns {number}
+ */
+export function fitZoomFractional(points, canvasWidth, canvasHeight, padding = 64, maxZoom = 17) {
+  if (!points || points.length === 0) return 1;
+  const usableW = Math.max(1, canvasWidth - padding * 2);
+  const usableH = Math.max(1, canvasHeight - padding * 2);
+
+  // Bounding box in world pixels at zoom 0 (the world is one 256px tile there).
+  let minPx = Infinity, maxPx = -Infinity, minPy = Infinity, maxPy = -Infinity;
+  for (const { lat, lng } of points) {
+    const { px, py } = latLngToPixel(lat, lng, 0);
+    if (px < minPx) minPx = px;
+    if (px > maxPx) maxPx = px;
+    if (py < minPy) minPy = py;
+    if (py > maxPy) maxPy = py;
+  }
+  const spanX = Math.max(maxPx - minPx, 1e-6);
+  const spanY = Math.max(maxPy - minPy, 1e-6);
+
+  // Doubling zoom doubles the pixel span, so the fit zoom is log2(fit ratio).
+  const z = Math.min(Math.log2(usableW / spanX), Math.log2(usableH / spanY));
+  return Math.max(1, Math.min(maxZoom, z));
+}
+
+/**
  * Compute the geographic centroid of a set of points.
  *
  * @param {import('../types.js').LocationPoint[]} points

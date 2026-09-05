@@ -11,7 +11,7 @@
  *  'closeup'  - Tight follow; highest zoom, shows neighbourhood-level detail
  */
 
-import { fitZoom, centroid, latLngToPixel, pixelToLatLng } from '../map/projection.js';
+import { fitZoom, fitZoomFractional, centroid, latLngToPixel, pixelToLatLng } from '../map/projection.js';
 
 /**
  * Nudge a (smoothed) camera centre so the moving dot stays within a central
@@ -66,8 +66,10 @@ export function getViewport(points, frame, settings, state) {
 export function createCameraState(points, settings) {
   const { width, height } = settings;
 
-  // Fixed viewport: full-journey bounding box with padding
-  const globalZoom = fitZoom(points, width, height, Math.min(width, height) * 0.1);
+  // Fixed viewport: full-journey bounding box with padding. Fractional so the
+  // route fills the frame (both endpoints clearly visible), not stuck an
+  // integer zoom level too far out.
+  const globalZoom = fitZoomFractional(points, width, height, Math.min(width, height) * 0.12);
   const { lat: cLat, lng: cLng } = centroid(points);
 
   // Close-up and steady modes: 3 zoom levels deeper than the fixed view

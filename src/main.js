@@ -14,7 +14,7 @@ import { filterOutliers, totalDistanceMetres } from './journey/filter.js';
 import { buildFrames, easeInOut } from './journey/interpolate.js';
 import { createCameraState, representativeZoom } from './journey/camera.js';
 import { prefetchAlongPath, setTileProvider, CURRENT_ATTRIBUTION } from './map/tiles.js';
-import { fitZoom } from './map/projection.js';
+import { fitZoom, fitZoomFractional } from './map/projection.js';
 import { createCompositor } from './video/compositor.js';
 import { encode, supportsH264 } from './video/encoder.js';
 import { muxToBuffer, saveVideo, estimateSizeBytes } from './video/muxer.js';
@@ -366,7 +366,7 @@ async function onPreview() {
   canvas.height = size;
   const { renderMap } = await import('./map/renderer.js');
   const { centroid } = await import('./map/projection.js');
-  const zoom = fitZoom(loadedPoints, size, size, 40);
+  const zoom = fitZoomFractional(loadedPoints, size, size, size * 0.08);
   const { lat, lng } = centroid(loadedPoints);
   await renderMap(canvas, loadedPoints, { centerLat: lat, centerLng: lng, zoom }, {});
 }
@@ -414,7 +414,7 @@ async function onCreateMP4() {
 
     // 1. Prefetch tiles along the path at the zoom the camera will render at,
     //    so the encode loop reads from cache instead of stalling on the network.
-    const prefetchZoom = representativeZoom(cameraState, settings);
+    const prefetchZoom = Math.round(representativeZoom(cameraState, settings));
     progress.emit('tiles:start', { total: 0 }); // total computed inside prefetch
     await prefetchAlongPath(
       loadedPoints,

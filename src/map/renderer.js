@@ -34,10 +34,18 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
   const originPy = center.py - height / 2;
 
   // ── 2. Determine tile range needed ─────────────────────────────────────────
-  const tileX0 = Math.floor(originPx / TILE_SIZE);
-  const tileY0 = Math.floor(originPy / TILE_SIZE);
-  const tileX1 = Math.ceil((originPx + width) / TILE_SIZE);
-  const tileY1 = Math.ceil((originPy + height) / TILE_SIZE);
+  // `zoom` may be fractional (for a tight fit). Fetch tiles at the nearest
+  // integer zoom and scale them, so the route can fill the frame instead of
+  // being stuck one integer level too far out.
+  const tileZoom = Math.max(0, Math.round(zoom));
+  const tileScale = Math.pow(2, zoom - tileZoom); // 1 when zoom is integer
+  const tileWorld = TILE_SIZE * tileScale;         // on-screen size of one tile
+  const worldTiles = Math.pow(2, tileZoom);        // tiles per axis at tileZoom
+
+  const tileX0 = Math.floor(originPx / tileWorld);
+  const tileY0 = Math.floor(originPy / tileWorld);
+  const tileX1 = Math.ceil((originPx + width) / tileWorld);
+  const tileY1 = Math.ceil((originPy + height) / tileWorld);
 
   // ── 3. Draw tiles (use cached bitmaps; skip any that 404) ──────────────────
   ctx.clearRect(0, 0, width, height);
@@ -46,7 +54,7 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
   ctx.fillStyle = '#dfe6ea';
   ctx.fillRect(0, 0, width, height);
 
-  const worldTiles = Math.pow(2, zoom); // tiles per axis at this zoom
+  const drawW = Math.ceil(tileWorld) + 1; // +1 avoids hairline seams between tiles
 
   const tileDrawCalls = [];
   for (let tx = tileX0; tx <= tileX1; tx++) {
@@ -54,19 +62,19 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
       // Above/below the map (poles) there are no tiles - leave the water base.
       if (ty < 0 || ty >= worldTiles) continue;
 
-      const destX = tx * TILE_SIZE - originPx;
-      const destY = ty * TILE_SIZE - originPy;
+      const destX = tx * tileWorld - originPx;
+      const destY = ty * tileWorld - originPy;
       // Wrap longitude so a world-spanning journey fills the whole canvas
       // instead of leaving a blank strip past the antimeridian.
       const wrappedX = ((tx % worldTiles) + worldTiles) % worldTiles;
 
       tileDrawCalls.push(
-        fetchTile(zoom, wrappedX, ty)
-          .then((bitmap) => ctx.drawImage(bitmap, Math.round(destX), Math.round(destY)))
+        fetchTile(tileZoom, wrappedX, ty)
+          .then((bitmap) => ctx.drawImage(bitmap, Math.floor(destX), Math.floor(destY), drawW, drawW))
           .catch(() => {
             // Draw a subtle placeholder for missing tiles
             ctx.fillStyle = '#d8e0d0';
-            ctx.fillRect(Math.round(destX), Math.round(destY), TILE_SIZE, TILE_SIZE);
+            ctx.fillRect(Math.floor(destX), Math.floor(destY), drawW, drawW);
           })
       );
     }
