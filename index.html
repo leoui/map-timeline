@@ -666,6 +666,17 @@
       <hr style="border:none;border-top:1px solid var(--border);margin:20px 0">
 
       <div class="field">
+        <label for="mapStyle" data-i18n="label.mapStyle">Map style</label>
+        <select id="mapStyle">
+          <option value="carto_light" selected data-i18n="map.light">Street (light)</option>
+          <option value="carto_voyager" data-i18n="map.color">Street (color)</option>
+          <option value="satellite" data-i18n="map.satellite">Satellite</option>
+          <option value="carto_dark" data-i18n="map.dark">Dark</option>
+          <option value="osm" data-i18n="map.osm">OpenStreetMap</option>
+        </select>
+      </div>
+
+      <div class="field">
         <label for="camera" data-i18n="label.camera">Camera movement</label>
         <select id="camera">
           <option value="fixed" data-i18n="cam.fixed">Fixed zoom (show the whole journey)</option>
@@ -815,7 +826,7 @@
         Google Maps and Google are trademarks of Google LLC.
       </p>
       <a href="/third-party-notices.txt" class="tp-link" target="_blank" rel="noopener" data-i18n="tp.notices">Third-party notices</a>
-      <div class="version" id="appVersion">Version: 20260826.U02</div>
+      <div class="version" id="appVersion">Version: 20260826.Z03</div>
     </footer>
   </div>
 
@@ -893,6 +904,8 @@
           "hint.social": "Shown in the bottom-right of your video, e.g. Instagram: @yourname",
           "sw.exact": "Select exact dates", "sw.exactsub": "Limit the animation to a date range",
           "label.start": "Start date", "label.end": "End date",
+          "label.mapStyle": "Map style",
+          "map.light": "Street (light)", "map.color": "Street (color)", "map.satellite": "Satellite", "map.dark": "Dark", "map.osm": "OpenStreetMap",
           "label.camera": "Camera movement",
           "cam.fixed": "Fixed zoom (show the whole journey)", "cam.steady": "Steady following",
           "cam.dynamic": "Dynamic following", "cam.closeup": "Close-up (follow up close)",
@@ -943,6 +956,8 @@
           "hint.social": "Ditampilkan di kanan bawah video Anda, mis. Instagram: @namaanda",
           "sw.exact": "Pilih tanggal tertentu", "sw.exactsub": "Batasi animasi ke rentang tanggal",
           "label.start": "Tanggal mulai", "label.end": "Tanggal selesai",
+          "label.mapStyle": "Gaya peta",
+          "map.light": "Jalan (terang)", "map.color": "Jalan (warna)", "map.satellite": "Satelit", "map.dark": "Gelap", "map.osm": "OpenStreetMap",
           "label.camera": "Gerakan kamera",
           "cam.fixed": "Zoom tetap (tampilkan seluruh perjalanan)", "cam.steady": "Mengikuti stabil",
           "cam.dynamic": "Mengikuti dinamis", "cam.closeup": "Jarak dekat (mengikuti dari dekat)",

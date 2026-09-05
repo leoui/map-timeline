@@ -11,7 +11,7 @@ import { parseTimeline, summarise } from './parser.js';
 import { filterOutliers, totalDistanceMetres } from './journey/filter.js';
 import { buildFrames, easeInOut } from './journey/interpolate.js';
 import { createCameraState, representativeZoom } from './journey/camera.js';
-import { prefetchAlongPath } from './map/tiles.js';
+import { prefetchAlongPath, setTileProvider, CURRENT_ATTRIBUTION } from './map/tiles.js';
 import { fitZoom } from './map/projection.js';
 import { createCompositor } from './video/compositor.js';
 import { encode, supportsH264 } from './video/encoder.js';
@@ -92,7 +92,21 @@ let saving = false;
     updateGpsHint();
     recomputeSelection();
   });
+
+  // Wire map style: switch tile provider and refresh the preview if it's open.
+  applyMapStyle();
+  document.getElementById('mapStyle')?.addEventListener('change', () => {
+    applyMapStyle();
+    const mapEl = document.getElementById('mapPreview');
+    if (mapEl && mapEl.style.display !== 'none') onPreview();
+  });
 })();
+
+/** Read the chosen map style and switch the global tile provider to it. */
+function applyMapStyle() {
+  const style = document.getElementById('mapStyle')?.value || 'carto_light';
+  try { setTileProvider(style); } catch { /* ignore unknown style */ }
+}
 
 // ── File loading ──────────────────────────────────────────────────────────────
 
@@ -245,12 +259,15 @@ async function onCreateMP4() {
     const frames       = buildFrames(loadedPoints, totalFrames, easeInOut);
     const cameraState  = createCameraState(loadedPoints, settings);
 
+    applyMapStyle(); // make sure the encoder uses the selected tile provider
+
     // Overlay metadata for the title card: date range of the selection and the
     // total distance (which the card animates 0 -> total along the line).
     const meta = {
       dateLabel: dateRangeLabel(loadedPoints),
       totalMeters: totalDistanceMetres(loadedPoints),
       distanceUnit: settings.distanceUnit,
+      attribution: CURRENT_ATTRIBUTION,
     };
     const compositor   = createCompositor(loadedPoints, frames, settings, cameraState, meta);
 

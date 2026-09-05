@@ -15,18 +15,35 @@
 import { boundingTiles, latLngToTile, TILE_SIZE } from './projection.js';
 
 export const TILE_PROVIDERS = {
-  osm:         (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
-  carto_light: (z, x, y) => `https://basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`,
-  carto_dark:  (z, x, y) => `https://basemaps.cartocdn.com/dark_all/${z}/${x}/${y}.png`,
+  // Street styles
+  carto_light:   (z, x, y) => `https://basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`,
+  carto_voyager: (z, x, y) => `https://basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`,
+  carto_dark:    (z, x, y) => `https://basemaps.cartocdn.com/dark_all/${z}/${x}/${y}.png`,
+  osm:           (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
+  // Satellite imagery (Esri World Imagery — note the {z}/{y}/{x} order)
+  satellite:     (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+};
+
+/** Attribution text required for each provider (drawn on the video). */
+export const TILE_ATTRIBUTION = {
+  carto_light:   '© OpenStreetMap contributors  © CARTO',
+  carto_voyager: '© OpenStreetMap contributors  © CARTO',
+  carto_dark:    '© OpenStreetMap contributors  © CARTO',
+  osm:           '© OpenStreetMap contributors',
+  satellite:     'Imagery © Esri, Maxar, Earthstar Geographics',
 };
 
 // Change this to switch tile provider globally.
 export let TILE_PROVIDER = TILE_PROVIDERS.carto_light;
+export let CURRENT_ATTRIBUTION = TILE_ATTRIBUTION.carto_light;
 
-/** @param {'osm'|'carto_light'|'carto_dark'} name */
+/** @param {keyof typeof TILE_PROVIDERS} name */
 export function setTileProvider(name) {
   if (!TILE_PROVIDERS[name]) throw new Error(`Unknown tile provider: ${name}`);
   TILE_PROVIDER = TILE_PROVIDERS[name];
+  CURRENT_ATTRIBUTION = TILE_ATTRIBUTION[name] || TILE_ATTRIBUTION.carto_light;
+  // A different provider means different tiles, so drop the cached ones.
+  clearTileCache();
 }
 
 // ── In-memory cache: "{z}/{x}/{y}" → ImageBitmap ─────────────────────────────
