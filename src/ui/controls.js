@@ -40,10 +40,10 @@ export function readSettings() {
  * Returns { startMs, endMs } in Unix milliseconds.
  * If "select exact dates" is unchecked, returns full range.
  *
- * Boundaries are the viewer's LOCAL midnight-to-midnight (not UTC). This matches
- * how people read the date they picked and the local-time time-of-day filter,
- * and avoids dropping early-morning points that fall on the previous UTC day
- * (e.g. a 6 AM WIB run is 11 PM UTC the day before).
+ * Boundaries are returned as "wall-clock" ms (day start/end read as UTC). main.js
+ * compares them against each point's wall-clock time (timestamp shifted into the
+ * data's own timezone), so a day the user picks means that calendar day in the
+ * timezone the data was recorded in, not the viewer's device zone.
  * @returns {{ startMs: number, endMs: number }}
  */
 export function readDateRange() {
@@ -54,21 +54,9 @@ export function readDateRange() {
   const endVal   = val('endDate');
 
   return {
-    startMs: startVal ? localDayStart(startVal) : -Infinity,
-    endMs:   endVal   ? localDayEnd(endVal)     : Infinity,
+    startMs: startVal ? Date.parse(`${startVal}T00:00:00.000Z`) : -Infinity,
+    endMs:   endVal   ? Date.parse(`${endVal}T23:59:59.999Z`)   : Infinity,
   };
-}
-
-/** Local-time start of a "YYYY-MM-DD" day, in ms. */
-function localDayStart(v) {
-  const [y, m, d] = v.split('-').map(Number);
-  return new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
-}
-
-/** Local-time end of a "YYYY-MM-DD" day, in ms. */
-function localDayEnd(v) {
-  const [y, m, d] = v.split('-').map(Number);
-  return new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
 }
 
 /**
@@ -95,19 +83,15 @@ export function readFilterMode() {
 }
 
 /**
- * Format a Unix-ms timestamp as a LOCAL YYYY-MM-DD string for <input type=date>.
- * Local matches how readDateRange() interprets the inputs (local midnight), so
- * the auto-filled range and the available-range hint line up with the days the
- * viewer actually sees.
- * @param {number} ms
+ * Format a "wall-clock" ms value (timestamp already shifted into the data's own
+ * timezone) as YYYY-MM-DD by reading its UTC parts. main.js works in wall time,
+ * so the auto-filled range and hint reflect the dates in the DATA's timezone,
+ * independent of the viewer's device zone.
+ * @param {number} wallMs
  * @returns {string}
  */
-function toDateInputValue(ms) {
-  const d = new Date(ms);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+function toDateInputValue(wallMs) {
+  return new Date(wallMs).toISOString().slice(0, 10);
 }
 
 /**

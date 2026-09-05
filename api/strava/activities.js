@@ -26,6 +26,7 @@ export default async function handler(req, res) {
           name: a.name,
           type: a.sport_type || a.type,
           start_date: a.start_date,
+          start_date_local: a.start_date_local,
           distance: a.distance,
           moving_time: a.moving_time,
           elapsed_time: a.elapsed_time,

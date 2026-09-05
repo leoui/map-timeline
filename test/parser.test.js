@@ -1,5 +1,24 @@
 import { describe, it, expect } from 'vitest';
-import { parseTimeline, summarise } from '../src/parser.js';
+import { parseTimeline, summarise, detectTimezoneOffsetMin } from '../src/parser.js';
+
+describe('detectTimezoneOffsetMin', () => {
+  it('reads a positive offset from an ISO timestamp', () => {
+    expect(detectTimezoneOffsetMin([{ startTime: '2026-02-20T06:00:00+07:00' }])).toBe(420);
+  });
+  it('reads a negative offset', () => {
+    expect(detectTimezoneOffsetMin({ t: '2018-02-20T10:02:13-05:30' })).toBe(-330);
+  });
+  it('prefers a real offset over a Z (UTC) timestamp', () => {
+    const raw = [{ endTime: '2026-01-01T00:00:00Z' }, { startTime: '2026-01-01T09:00:00+09:00' }];
+    expect(detectTimezoneOffsetMin(raw)).toBe(540);
+  });
+  it('falls back to 0 when every timestamp is Z', () => {
+    expect(detectTimezoneOffsetMin([{ startTime: '2026-01-01T00:00:00Z' }])).toBe(0);
+  });
+  it('returns null when there is no offset info', () => {
+    expect(detectTimezoneOffsetMin({ locations: [{ timestampMs: 1600000000000 }] })).toBe(null);
+  });
+});
 
 // ── Format D: on-device "Timeline" export (bare top-level array) ────────────────
 

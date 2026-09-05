@@ -237,6 +237,56 @@ function parseTimestamp(v) {
   return null;
 }
 
+/**
+ * Detect the timezone the data was recorded in, by scanning the raw JSON for the
+ * first ISO datetime that carries an explicit UTC offset (e.g. "+07:00"). Google
+ * Timeline visit/activity times carry the local offset; timelinePath uses "Z"
+ * (UTC), so we prefer a real ±HH:MM offset and fall back to 0 only if every
+ * timestamp is "Z". Returns offset in minutes east of UTC, or null if none.
+ *
+ * @param {any} raw
+ * @returns {number|null}
+ */
+export function detectTimezoneOffsetMin(raw) {
+  const RE = /\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?\s*(Z|[+-]\d{2}:?\d{2})/;
+  let found = null;
+  let sawZ = false;
+  let budget = 50000; // cap work on huge files
+
+  const visit = (v, depth) => {
+    if (found != null || depth > 8 || budget <= 0) return;
+    if (typeof v === 'string') {
+      budget--;
+      const m = v.match(RE);
+      if (m) {
+        if (m[1] === 'Z' || m[1] === 'z') sawZ = true;
+        else found = offsetStringToMin(m[1]);
+      }
+      return;
+    }
+    if (Array.isArray(v)) {
+      for (let i = 0; i < v.length && found == null && budget > 0; i++) visit(v[i], depth + 1);
+      return;
+    }
+    if (v && typeof v === 'object') {
+      for (const k in v) { if (found != null || budget <= 0) break; visit(v[k], depth + 1); }
+    }
+  };
+  visit(raw, 0);
+
+  if (found != null) return found;
+  return sawZ ? 0 : null;
+}
+
+/** "+07:00" | "-0530" | "Z" -> minutes east of UTC. */
+function offsetStringToMin(s) {
+  if (s === 'Z' || s === 'z') return 0;
+  const sign = s[0] === '-' ? -1 : 1;
+  const hh = parseInt(s.slice(1, 3), 10);
+  const mm = parseInt(s.slice(-2), 10);
+  return sign * (hh * 60 + mm);
+}
+
 function isValidCoord(lat, lng) {
   return (
     typeof lat === 'number' &&

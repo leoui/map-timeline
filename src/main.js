@@ -7,7 +7,7 @@
  * Imported by index.html as a module: <script type="module" src="src/main.js">
  */
 
-import { parseTimeline, summarise } from './parser.js';
+import { parseTimeline, summarise, detectTimezoneOffsetMin } from './parser.js';
 import { parseTrackFile } from './track-parser.js';
 import { stravaConnect, initStrava } from './strava.js';
 import { filterOutliers, totalDistanceMetres } from './journey/filter.js';
@@ -38,6 +38,21 @@ let allRawPoints = null;
 
 /** Filename of the currently loaded data, for the file-info line. */
 let loadedFilename = '';
+
+/**
+ * Timezone offset (minutes east of UTC) the data was recorded in. Date and
+ * time-of-day filtering happen in this "wall clock", read from the data itself
+ * (the JSON's ISO offsets or a Strava activity's local time), so filtering is
+ * independent of the viewer's device timezone. Falls back to the viewer's zone
+ * only when the data carries no timezone (e.g. epoch-only or GPX in UTC).
+ */
+let tzOffsetMin = -new Date().getTimezoneOffset();
+
+/** Viewer's own UTC offset in minutes, used as a fallback. */
+function viewerOffsetMin() { return -new Date().getTimezoneOffset(); }
+
+/** A point's wall-clock time (ms) in the data's timezone, treated as UTC. */
+function wallOf(p) { return p.timestampMs + tzOffsetMin * 60_000; }
 
 /**
  * The most recently encoded video, kept so the Download button can save it
@@ -132,6 +147,9 @@ let overlayImage = null;
   document.getElementById('stravaBtn')?.addEventListener('click', stravaConnect);
   initStrava({
     onActivity: ({ points, title, activity }) => {
+      // Filter in the activity's own local timezone (from Strava's start_date_local).
+      const off = stravaOffsetMin(activity);
+      tzOffsetMin = off != null ? off : viewerOffsetMin();
       setLoadedData(points, `${title} (Strava)`);
       stravaActivity = activity || null; // set after load (setLoadedData path clears it)
       const t = document.getElementById('videoTitle');
@@ -141,6 +159,19 @@ let overlayImage = null;
     onBusy: setStravaBusy,
   });
 })();
+
+/**
+ * Derive an activity's UTC offset (minutes) from Strava's start_date (UTC) and
+ * start_date_local (same instant expressed in the athlete's local time, but
+ * suffixed 'Z'). Returns null if either is missing.
+ */
+function stravaOffsetMin(activity) {
+  if (!activity || !activity.start_date || !activity.start_date_local) return null;
+  const utc = Date.parse(activity.start_date);
+  const local = Date.parse(activity.start_date_local);
+  if (!Number.isFinite(utc) || !Number.isFinite(local)) return null;
+  return Math.round((local - utc) / 60000);
+}
 
 /** Reflect the Strava connection state on the button. */
 function setStravaBusy(busy) {
@@ -216,7 +247,17 @@ async function onFileChange(e) {
     // Parse the FULL span (no date filter) so we can show what's available and
     // let the user re-slice without re-uploading.
     const track = parseTrackFile(text, file.name);
-    const parsed = track ?? parseTimeline(JSON.parse(text));
+    let parsed;
+    if (track) {
+      parsed = track;
+      tzOffsetMin = viewerOffsetMin(); // GPX/TCX times are UTC; no local zone to read
+    } else {
+      const raw = JSON.parse(text);
+      parsed = parseTimeline(raw);
+      // Use the timezone recorded in the data (e.g. +07:00), not the device's.
+      const detected = detectTimezoneOffsetMin(raw);
+      tzOffsetMin = detected != null ? detected : viewerOffsetMin();
+    }
     setLoadedData(parsed, file.name);
   } catch (err) {
     showError(err.message);
@@ -225,6 +266,7 @@ async function onFileChange(e) {
 
 function onLoadSample() {
   const pts = samplePoints();
+  tzOffsetMin = viewerOffsetMin(); // sample data has no real timezone
   setLoadedData(pts, SAMPLE_META.filename);
 
   const titleEl = document.getElementById('videoTitle');
@@ -242,9 +284,10 @@ function setLoadedData(points, filename) {
   loadedFilename = filename;
   stravaActivity = null; // uploads/samples have no Strava stats (re-set by the Strava path)
 
-  // Points come back sorted from parseTimeline; guard anyway.
-  const minMs = points[0].timestampMs;
-  const maxMs = points[points.length - 1].timestampMs;
+  // Available range in the data's own timezone (wall clock), so the date fields
+  // and hint show the days as recorded, not shifted by the viewer's zone.
+  const minMs = wallOf(points[0]);
+  const maxMs = wallOf(points[points.length - 1]);
   controls.applyAvailableRange(minMs, maxMs);
 
   controls.showJourneyUI();
@@ -258,18 +301,21 @@ function setLoadedData(points, filename) {
 function recomputeSelection() {
   if (!allRawPoints) return;
 
+  // Date range + time-of-day are both evaluated in the data's own timezone
+  // (wall clock), read from the file, not the viewer's device zone.
   const { startMs, endMs } = controls.readDateRange();
-  let inRange = allRawPoints.filter(
-    (p) => p.timestampMs >= startMs && p.timestampMs <= endMs
-  );
+  let inRange = allRawPoints.filter((p) => {
+    const w = wallOf(p);
+    return w >= startMs && w <= endMs;
+  });
 
-  // Optional time-of-day window (e.g. a 5 AM - 7 AM morning run). Uses the
-  // viewer's local time; wraps past midnight when start > end.
+  // Optional time-of-day window (e.g. a 5 AM - 7 AM morning run). Uses the data's
+  // local wall clock; wraps past midnight when start > end.
   const tod = controls.readTimeOfDay();
   if (tod) {
     inRange = inRange.filter((p) => {
-      const d = new Date(p.timestampMs);
-      const min = d.getHours() * 60 + d.getMinutes();
+      const d = new Date(wallOf(p));
+      const min = d.getUTCHours() * 60 + d.getUTCMinutes();
       return tod.startMin <= tod.endMin
         ? (min >= tod.startMin && min <= tod.endMin)
         : (min >= tod.startMin || min <= tod.endMin);
@@ -319,11 +365,13 @@ function recomputeSelection() {
  */
 function dateRangeLabel(pts) {
   if (!pts || pts.length === 0) return '';
+  // Format in the data's timezone (wall clock read as UTC) so the card shows the
+  // dates as they were where the trip happened.
   const fmt = (ms) => new Date(ms).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
+    year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC',
   });
-  const start = fmt(pts[0].timestampMs);
-  const end = fmt(pts[pts.length - 1].timestampMs);
+  const start = fmt(wallOf(pts[0]));
+  const end = fmt(wallOf(pts[pts.length - 1]));
   return start === end ? start : `${start} - ${end}`;
 }
 
