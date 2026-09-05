@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   const auth = req.headers.authorization;
   if (!auth) return res.status(401).json({ error: 'Missing Authorization header' });
 
-  const perPage = Math.min(parseInt(req.query.per_page || '30', 10) || 30, 50);
+  const perPage = Math.min(parseInt(req.query.per_page || '50', 10) || 50, 100);
   const page = Math.max(parseInt(req.query.page || '1', 10) || 1, 1);
 
   try {
@@ -31,6 +31,7 @@ export default async function handler(req, res) {
           elapsed_time: a.elapsed_time,
           average_speed: a.average_speed,
           total_elevation_gain: a.total_elevation_gain,
+          polyline: (a.map && a.map.summary_polyline) || '',
           has_map: !!(a.map && a.map.summary_polyline),
         }))
       : [];

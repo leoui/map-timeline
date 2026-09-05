@@ -42,19 +42,25 @@ export async function initStrava({ onActivity, onError, onBusy }) {
   onBusy && onBusy(true);
   try {
     const token = await exchangeToken(code);
-    const activities = await getJson('/api/strava/activities?per_page=30', token);
-    const withGps = (activities || []).filter((a) => a.has_map);
+    const activities = await getJson('/api/strava/activities?per_page=50', token);
     onBusy && onBusy(false);
-    if (withGps.length === 0) {
-      onError && onError('No activities with a GPS route were found on your Strava.');
+    if (!Array.isArray(activities) || activities.length === 0) {
+      onError && onError('No recent activities were found on your Strava.');
       return;
     }
-    showPicker(withGps, async (activity) => {
+    showPicker(activities, async (activity) => {
       onBusy && onBusy(true);
       try {
-        const st = await getJson(`/api/strava/streams?id=${activity.id}`, token);
-        const points = streamsToPoints(st, activity);
-        if (points.length < 2) throw new Error('That activity has no usable GPS track.');
+        // Prefer the precise GPS + time stream; fall back to the route polyline.
+        let points = [];
+        try {
+          const st = await getJson(`/api/strava/streams?id=${activity.id}`, token);
+          points = streamsToPoints(st, activity);
+        } catch (_) { /* fall back to the polyline below */ }
+        if (points.length < 2) points = polylineToPoints(activity);
+        if (points.length < 2) {
+          throw new Error('That activity has no GPS route. Pick one recorded outdoors with GPS.');
+        }
         onActivity({ points, title: activity.name || 'Strava activity' });
       } catch (e) {
         onError && onError(e.message || 'Could not load that activity.');
@@ -104,6 +110,38 @@ function streamsToPoints(st, activity) {
   return out;
 }
 
+/**
+ * Fallback: build points from the activity's summary polyline (no per-point
+ * timestamps, so spread the moving time evenly across the route).
+ */
+function polylineToPoints(activity) {
+  const coords = decodePolyline(activity.polyline || '');
+  if (coords.length < 2) return [];
+  const startMs = Date.parse(activity.start_date) || Date.now();
+  const durMs = (Number(activity.moving_time) || coords.length) * 1000;
+  const n = coords.length - 1;
+  return coords.map((c, i) => ({
+    lat: c[0], lng: c[1], timestampMs: startMs + (durMs * i) / Math.max(1, n),
+  }));
+}
+
+/** Decode a Google/Strava encoded polyline into [lat, lng] pairs. */
+function decodePolyline(str) {
+  if (!str) return [];
+  let index = 0, lat = 0, lng = 0;
+  const out = [];
+  while (index < str.length) {
+    let b, shift = 0, result = 0;
+    do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    out.push([lat / 1e5, lng / 1e5]);
+  }
+  return out;
+}
+
 function cleanUrl() {
   history.replaceState({}, '', window.location.origin + window.location.pathname);
 }
@@ -142,7 +180,7 @@ function showPicker(activities, onPick) {
     name.textContent = a.name || 'Activity';
     const meta = document.createElement('div');
     meta.className = 'activity-meta';
-    meta.textContent = `${date} · ${km} km${a.type ? ' · ' + a.type : ''}`;
+    meta.textContent = `${date} · ${km} km${a.type ? ' · ' + a.type : ''}${a.has_map ? '' : ' · no route'}`;
     btn.appendChild(name);
     btn.appendChild(meta);
     btn.addEventListener('click', () => { remove(); onPick(a); });
