@@ -630,6 +630,34 @@
       </div>
 
       <div class="field">
+        <label for="backgroundMode" data-i18n="label.background">Background</label>
+        <select id="backgroundMode">
+          <option value="map" selected data-i18n="bg.map">Map</option>
+          <option value="photo" data-i18n="bg.photo">Your photo (9:16)</option>
+        </select>
+      </div>
+
+      <div id="photoRow" style="display:none">
+        <div class="field">
+          <label data-i18n="label.photo">Your photo (9:16)</label>
+          <input type="file" id="photoInput" accept="image/*" style="display:none">
+          <button type="button" class="btn btn-outline" id="photoBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+            <span data-i18n="photo.choose">Choose a 9:16 photo</span>
+          </button>
+          <span class="field-hint" id="photoInfo"></span>
+          <span class="field-hint" data-i18n="photo.hint">A portrait 9:16 image works best. Your photo stays on your device.</span>
+        </div>
+        <div class="field">
+          <label for="overlayStyle" data-i18n="label.overlay">Overlay style</label>
+          <select id="overlayStyle">
+            <option value="line" selected data-i18n="overlay.line">Route line (over photo)</option>
+            <option value="card" data-i18n="overlay.card">Map card (over photo)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
         <label data-i18n="label.social">Your social media account</label>
         <div class="radio-group" role="radiogroup" aria-label="Social platform">
           <label class="radio"><input type="radio" name="socialPlatform" value="Instagram" checked> Instagram</label>
@@ -826,7 +854,7 @@
         Google Maps and Google are trademarks of Google LLC.
       </p>
       <a href="/third-party-notices.txt" class="tp-link" target="_blank" rel="noopener" data-i18n="tp.notices">Third-party notices</a>
-      <div class="version" id="appVersion">Version: 20260826.Z03</div>
+      <div class="version" id="appVersion">Version: 20260826.Z04</div>
     </footer>
   </div>
 
@@ -900,6 +928,10 @@
           "card2.title": "Customize your video", "card2.sub": "Range, motion, format & quality",
           "lock2": "Add a Timeline above to unlock these options.",
           "label.videoTitle": "Video title",
+          "label.background": "Background", "bg.map": "Map", "bg.photo": "Your photo (9:16)",
+          "label.photo": "Your photo (9:16)", "photo.choose": "Choose a 9:16 photo",
+          "photo.hint": "A portrait 9:16 image works best. Your photo stays on your device.",
+          "label.overlay": "Overlay style", "overlay.line": "Route line (over photo)", "overlay.card": "Map card (over photo)",
           "label.social": "Your social media account", "ph.social": "your account name (optional)",
           "hint.social": "Shown in the bottom-right of your video, e.g. Instagram: @yourname",
           "sw.exact": "Select exact dates", "sw.exactsub": "Limit the animation to a date range",
@@ -952,6 +984,10 @@
           "card2.title": "Sesuaikan video Anda", "card2.sub": "Rentang, gerakan, format & kualitas",
           "lock2": "Tambahkan Timeline di atas untuk membuka opsi ini.",
           "label.videoTitle": "Judul video",
+          "label.background": "Latar belakang", "bg.map": "Peta", "bg.photo": "Foto Anda (9:16)",
+          "label.photo": "Foto Anda (9:16)", "photo.choose": "Pilih foto 9:16",
+          "photo.hint": "Gambar potret 9:16 paling cocok. Foto Anda tetap di perangkat Anda.",
+          "label.overlay": "Gaya overlay", "overlay.line": "Garis rute (di atas foto)", "overlay.card": "Kartu peta (di atas foto)",
           "label.social": "Akun media sosial Anda", "ph.social": "nama akun Anda (opsional)",
           "hint.social": "Ditampilkan di kanan bawah video Anda, mis. Instagram: @namaanda",
           "sw.exact": "Pilih tanggal tertentu", "sw.exactsub": "Batasi animasi ke rentang tanggal",

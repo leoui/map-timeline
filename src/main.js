@@ -48,6 +48,9 @@ let lastVideo = null;
 /** Guard against overlapping save dialogs (e.g. a double-click on Download). */
 let saving = false;
 
+/** Uploaded background photo (ImageBitmap) for photo-overlay mode. */
+let overlayImage = null;
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 (async function init() {
@@ -97,15 +100,68 @@ let saving = false;
   applyMapStyle();
   document.getElementById('mapStyle')?.addEventListener('change', () => {
     applyMapStyle();
-    const mapEl = document.getElementById('mapPreview');
-    if (mapEl && mapEl.style.display !== 'none') onPreview();
+    if (previewOpen()) onPreview();
   });
+
+  // Wire background mode (map vs photo overlay).
+  updatePhotoUI();
+  document.getElementById('backgroundMode')?.addEventListener('change', () => {
+    updatePhotoUI();
+    if (previewOpen()) onPreview();
+  });
+  document.getElementById('photoBtn')?.addEventListener('click', () => document.getElementById('photoInput')?.click());
+  document.getElementById('photoInput')?.addEventListener('change', onPhotoChange);
+  document.getElementById('overlayStyle')?.addEventListener('change', () => { if (previewOpen()) onPreview(); });
 })();
 
 /** Read the chosen map style and switch the global tile provider to it. */
 function applyMapStyle() {
   const style = document.getElementById('mapStyle')?.value || 'carto_light';
   try { setTileProvider(style); } catch { /* ignore unknown style */ }
+}
+
+function previewOpen() {
+  const m = document.getElementById('mapPreview');
+  return !!m && m.style.display !== 'none';
+}
+
+/** Show/hide the photo controls and force a 9:16 format when photo mode is on. */
+function updatePhotoUI() {
+  const photo = document.getElementById('backgroundMode')?.value === 'photo';
+  const row = document.getElementById('photoRow');
+  if (row) row.style.display = photo ? 'block' : 'none';
+  const fmt = document.getElementById('format');
+  if (fmt) {
+    if (photo) { fmt.value = 'portrait'; fmt.disabled = true; }
+    else { fmt.disabled = false; }
+  }
+}
+
+async function onPhotoChange(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  try {
+    overlayImage = await createImageBitmap(file);
+    const info = document.getElementById('photoInfo');
+    if (info) info.textContent = `${file.name} · ${overlayImage.width}×${overlayImage.height}`;
+    if (previewOpen()) onPreview();
+  } catch {
+    showError('Could not read that image. Please try a different photo.');
+  }
+}
+
+/** Build the photo-overlay portion of the encode metadata. */
+function backgroundMeta() {
+  const mode = document.getElementById('backgroundMode')?.value || 'map';
+  const style = document.getElementById('overlayStyle')?.value || 'line';
+  const usingPhoto = mode === 'photo' && !!overlayImage;
+  return {
+    backgroundMode: mode,
+    overlayStyle: style,
+    backgroundImage: usingPhoto ? overlayImage : null,
+    // No map tiles are drawn for the route-line style, so no attribution needed.
+    showAttribution: !(usingPhoto && style === 'line'),
+  };
 }
 
 // ── File loading ──────────────────────────────────────────────────────────────
@@ -226,12 +282,39 @@ async function onPreview() {
   const canvas = document.getElementById('mapCanvas');
   if (!canvas) return;
 
+  applyMapStyle();
   const settings = controls.readSettings();
+  const bg = backgroundMeta();
+
+  // ── Photo-overlay preview: composite a representative (final) frame ──────
+  if (bg.backgroundMode === 'photo' && overlayImage) {
+    mapEl.style.aspectRatio = '9 / 16';
+    const width = 1080, height = 1920;
+    const previewSettings = { ...settings, width, height };
+    const totalFrames = 60;
+    const frames = easeInOut ? buildFrames(loadedPoints, totalFrames, easeInOut) : buildFrames(loadedPoints, totalFrames);
+    const cameraState = createCameraState(loadedPoints, previewSettings);
+    const meta = {
+      dateLabel: dateRangeLabel(loadedPoints),
+      totalMeters: totalDistanceMetres(loadedPoints),
+      distanceUnit: settings.distanceUnit,
+      attribution: CURRENT_ATTRIBUTION,
+      ...bg,
+    };
+    const comp = createCompositor(loadedPoints, frames, previewSettings, cameraState, meta);
+    await comp.drawFrame(frames.length - 1); // final frame = whole route drawn
+    canvas.width = width;
+    canvas.height = height;
+    const bmp = await createImageBitmap(comp.canvas);
+    canvas.getContext('2d').drawImage(bmp, 0, 0);
+    return;
+  }
+
+  // ── Map preview: full journey at zoom-fit (square) ──────────────────────
+  mapEl.style.aspectRatio = '1 / 1';
   const size = mapEl.offsetWidth;
   canvas.width = size;
   canvas.height = size;
-
-  // Quick static preview - just show the full journey at zoom-fit
   const { renderMap } = await import('./map/renderer.js');
   const { centroid } = await import('./map/projection.js');
   const zoom = fitZoom(loadedPoints, size, size, 40);
@@ -255,6 +338,14 @@ async function onCreateMP4() {
 
   try {
     const settings     = controls.readSettings();
+    const bg           = backgroundMeta();
+
+    // Photo overlay needs an uploaded image and a 9:16 canvas.
+    if (bg.backgroundMode === 'photo' && !overlayImage) {
+      throw new Error('Please choose a 9:16 photo first, or switch the background back to Map.');
+    }
+    if (bg.backgroundMode === 'photo') { settings.width = 1080; settings.height = 1920; }
+
     const totalFrames  = settings.fps * settings.durationSec;
     const frames       = buildFrames(loadedPoints, totalFrames, easeInOut);
     const cameraState  = createCameraState(loadedPoints, settings);
@@ -268,6 +359,7 @@ async function onCreateMP4() {
       totalMeters: totalDistanceMetres(loadedPoints),
       distanceUnit: settings.distanceUnit,
       attribution: CURRENT_ATTRIBUTION,
+      ...bg,
     };
     const compositor   = createCompositor(loadedPoints, frames, settings, cameraState, meta);
 
