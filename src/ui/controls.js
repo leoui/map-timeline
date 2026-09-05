@@ -55,6 +55,21 @@ export function readDateRange() {
 }
 
 /**
+ * Read the time-of-day filter, or null if it's off.
+ * Returns minutes-of-day for the start and end of the daily window.
+ * @returns {{ startMin: number, endMin: number } | null}
+ */
+export function readTimeOfDay() {
+  const on = document.getElementById('exactTimes')?.checked;
+  if (!on) return null;
+  const toMin = (t) => {
+    const [h, m] = (t || '00:00').split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  return { startMin: toMin(val('startTime')), endMin: toMin(val('endTime')) };
+}
+
+/**
  * Read the GPS filter mode.
  * @returns {'conservative'|'off'}
  */

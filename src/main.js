@@ -8,6 +8,7 @@
  */
 
 import { parseTimeline, summarise } from './parser.js';
+import { parseTrackFile } from './track-parser.js';
 import { filterOutliers, totalDistanceMetres } from './journey/filter.js';
 import { buildFrames, easeInOut } from './journey/interpolate.js';
 import { createCameraState, representativeZoom } from './journey/camera.js';
@@ -89,6 +90,15 @@ let overlayImage = null;
   // Re-slice the loaded data whenever the date range changes.
   document.getElementById('startDate')?.addEventListener('change', recomputeSelection);
   document.getElementById('endDate')?.addEventListener('change', recomputeSelection);
+
+  // Time-of-day filter toggle + inputs.
+  document.getElementById('exactTimes')?.addEventListener('change', () => {
+    const row = document.getElementById('timeRow');
+    if (row) row.style.display = document.getElementById('exactTimes').checked ? 'grid' : 'none';
+    recomputeSelection();
+  });
+  document.getElementById('startTime')?.addEventListener('change', recomputeSelection);
+  document.getElementById('endTime')?.addEventListener('change', recomputeSelection);
 
   // Wire GPS filter hint + re-filter
   document.getElementById('gps')?.addEventListener('change', () => {
@@ -172,10 +182,11 @@ async function onFileChange(e) {
 
   try {
     const text = await file.text();
-    const raw  = JSON.parse(text);
+    // GPX / TCX run files (Strava, Garmin, Apple Health exports) or Timeline JSON.
     // Parse the FULL span (no date filter) so we can show what's available and
     // let the user re-slice without re-uploading.
-    const parsed = parseTimeline(raw);
+    const track = parseTrackFile(text, file.name);
+    const parsed = track ?? parseTimeline(JSON.parse(text));
     setLoadedData(parsed, file.name);
   } catch (err) {
     showError(err.message);
@@ -217,9 +228,22 @@ function recomputeSelection() {
   if (!allRawPoints) return;
 
   const { startMs, endMs } = controls.readDateRange();
-  const inRange = allRawPoints.filter(
+  let inRange = allRawPoints.filter(
     (p) => p.timestampMs >= startMs && p.timestampMs <= endMs
   );
+
+  // Optional time-of-day window (e.g. a 5 AM - 7 AM morning run). Uses the
+  // viewer's local time; wraps past midnight when start > end.
+  const tod = controls.readTimeOfDay();
+  if (tod) {
+    inRange = inRange.filter((p) => {
+      const d = new Date(p.timestampMs);
+      const min = d.getHours() * 60 + d.getMinutes();
+      return tod.startMin <= tod.endMin
+        ? (min >= tod.startMin && min <= tod.endMin)
+        : (min >= tod.startMin || min <= tod.endMin);
+    });
+  }
 
   const mode = controls.readFilterMode();
   const filtered = filterOutliers(inRange, mode);

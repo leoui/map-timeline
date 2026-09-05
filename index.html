@@ -336,6 +336,9 @@
     }
     .detail-body ol { padding-left: 20px; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
     .detail-body.pad { padding-top: 16px; }
+    .detail-body p { margin-top: 12px; }
+    .detail-body p:first-child { margin-top: 0; }
+    .detail-body strong { color: var(--text); font-weight: 600; }
 
     /* ─────────────────────────  Fields  ───────────────────────── */
     .field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 18px; }
@@ -554,7 +557,7 @@
         </div>
       </div>
 
-      <input type="file" id="fileInput" accept=".json" style="display:none" aria-label="Choose Timeline.json">
+      <input type="file" id="fileInput" accept=".json,.gpx,.tcx,application/gpx+xml,application/xml" style="display:none" aria-label="Choose a Timeline JSON or GPX/TCX file">
       <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Choose or drop your Timeline JSON file">
         <div class="dz-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
@@ -586,6 +589,35 @@
             <li data-i18n-html="howto.s4">Select <strong>Export Timeline data</strong>.</li>
             <li data-i18n-html="howto.s5">Choose a date range and tap <strong>Export</strong>.</li>
             <li data-i18n-html="howto.s6">Share the resulting JSON file here.</li>
+          </ol>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <svg class="lead" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 4v16M17 4v16M3 8l4-4 4 4M7 4v12"/></svg>
+          <span data-i18n="gpx.summary">Use a run from Strava, Garmin or Apple Health (GPX)</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </summary>
+        <div class="detail-body" data-i18n-html="gpx.body">
+          <p>Almost any run tracker can save a run as a <strong>GPX</strong> file. Export one, then choose it above.</p>
+          <p><strong>Strava</strong> (open strava.com in a web browser):</p>
+          <ol>
+            <li>Open the run you want.</li>
+            <li>Click the three-dot menu (...).</li>
+            <li>Choose <strong>Export GPX</strong>.</li>
+          </ol>
+          <p><strong>Garmin Connect</strong>:</p>
+          <ol>
+            <li>Open the activity.</li>
+            <li>Open the menu (gear or three dots).</li>
+            <li>Choose <strong>Export to GPX</strong>.</li>
+          </ol>
+          <p><strong>Apple Health / Fitness</strong> (iPhone):</p>
+          <ol>
+            <li>Apple does not export GPX on its own.</li>
+            <li>Install a free app like <strong>HealthFit</strong> or <strong>RunGap</strong>.</li>
+            <li>Open your workout there and export it as GPX.</li>
           </ol>
         </div>
       </details>
@@ -690,6 +722,27 @@
         </div>
       </div>
       <div class="date-hint" id="dateHint" style="display:none"></div>
+
+      <div class="switch-row" style="margin-top:14px">
+        <div>
+          <div class="sw-label" data-i18n="tod.label">Filter by time of day</div>
+          <div class="sw-sub" data-i18n="tod.sub">Only include points within a daily time window (e.g. a morning run)</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="exactTimes">
+          <span class="track"></span>
+        </label>
+      </div>
+      <div class="grid-2" id="timeRow" style="display:none">
+        <div class="field">
+          <label for="startTime" data-i18n="tod.start">Start time</label>
+          <input type="time" id="startTime" value="05:00">
+        </div>
+        <div class="field">
+          <label for="endTime" data-i18n="tod.end">End time</label>
+          <input type="time" id="endTime" value="07:00">
+        </div>
+      </div>
 
       <hr style="border:none;border-top:1px solid var(--border);margin:20px 0">
 
@@ -854,7 +907,7 @@
         Google Maps and Google are trademarks of Google LLC.
       </p>
       <a href="/third-party-notices.txt" class="tp-link" target="_blank" rel="noopener" data-i18n="tp.notices">Third-party notices</a>
-      <div class="version" id="appVersion">Version: 20260826.Z04</div>
+      <div class="version" id="appVersion">Version: 20260826.Z05</div>
     </footer>
   </div>
 
@@ -914,7 +967,7 @@
           "hero.sub": "Animate your Google Maps Timeline on a map and export it as an MP4, entirely on your device. Nothing is uploaded.",
           "step.upload": "Upload", "step.customize": "Customize", "step.render": "Render",
           "card1.title": "Add your Timeline", "card1.sub": "Your file never leaves this device",
-          "dz.title": "Drop your Timeline.json here", "dz.sub": "or tap to browse, up to ~200 MB",
+          "dz.title": "Drop your Timeline or run file here", "dz.sub": "Timeline JSON, GPX or TCX. Tap to browse, up to ~200 MB",
           "or": "or", "sample": "Try a fictional sample journey",
           "howto.summary": "How to export your Timeline on iPhone",
           "howto.s1": "Open the Google Maps app and tap your profile photo.",
@@ -923,6 +976,8 @@
           "howto.s4": "Select <strong>Export Timeline data</strong>.",
           "howto.s5": "Choose a date range and tap <strong>Export</strong>.",
           "howto.s6": "Share the resulting JSON file here.",
+          "gpx.summary": "Use a run from Strava, Garmin or Apple Health (GPX)",
+          "gpx.body": "<p>Almost any run tracker can save a run as a <strong>GPX</strong> file. Export one, then choose it above.</p><p><strong>Strava</strong> (open strava.com in a web browser):</p><ol><li>Open the run you want.</li><li>Click the three-dot menu (...).</li><li>Choose <strong>Export GPX</strong>.</li></ol><p><strong>Garmin Connect</strong>:</p><ol><li>Open the activity.</li><li>Open the menu (gear or three dots).</li><li>Choose <strong>Export to GPX</strong>.</li></ol><p><strong>Apple Health / Fitness</strong> (iPhone):</p><ol><li>Apple does not export GPX on its own.</li><li>Install a free app like <strong>HealthFit</strong> or <strong>RunGap</strong>.</li><li>Open your workout there and export it as GPX.</li></ol>",
           "prefs.summary": "Display preferences",
           "label.unit": "Distance unit", "unit.auto": "Automatic", "unit.km": "Kilometers", "unit.mi": "Miles",
           "card2.title": "Customize your video", "card2.sub": "Range, motion, format & quality",
@@ -936,6 +991,8 @@
           "hint.social": "Shown in the bottom-right of your video, e.g. Instagram: @yourname",
           "sw.exact": "Select exact dates", "sw.exactsub": "Limit the animation to a date range",
           "label.start": "Start date", "label.end": "End date",
+          "tod.label": "Filter by time of day", "tod.sub": "Only include points within a daily time window (e.g. a morning run)",
+          "tod.start": "Start time", "tod.end": "End time",
           "label.mapStyle": "Map style",
           "map.light": "Street (light)", "map.color": "Street (color)", "map.satellite": "Satellite", "map.dark": "Dark", "map.osm": "OpenStreetMap",
           "label.camera": "Camera movement",
@@ -970,7 +1027,7 @@
           "hero.sub": "Animasikan Google Maps Timeline Anda di peta dan ekspor sebagai MP4, sepenuhnya di perangkat Anda. Tidak ada yang diunggah.",
           "step.upload": "Unggah", "step.customize": "Sesuaikan", "step.render": "Render",
           "card1.title": "Tambahkan Timeline Anda", "card1.sub": "File Anda tidak pernah meninggalkan perangkat ini",
-          "dz.title": "Letakkan Timeline.json Anda di sini", "dz.sub": "atau ketuk untuk menjelajah, hingga ~200 MB",
+          "dz.title": "Letakkan file Timeline atau lari Anda di sini", "dz.sub": "JSON Timeline, GPX atau TCX. Ketuk untuk menjelajah, hingga ~200 MB",
           "or": "atau", "sample": "Coba contoh perjalanan fiktif",
           "howto.summary": "Cara mengekspor Timeline Anda di iPhone",
           "howto.s1": "Buka aplikasi Google Maps dan ketuk foto profil Anda.",
@@ -979,6 +1036,8 @@
           "howto.s4": "Pilih <strong>Ekspor data Timeline</strong>.",
           "howto.s5": "Pilih rentang tanggal lalu ketuk <strong>Ekspor</strong>.",
           "howto.s6": "Bagikan file JSON hasilnya di sini.",
+          "gpx.summary": "Gunakan lari dari Strava, Garmin atau Apple Health (GPX)",
+          "gpx.body": "<p>Hampir semua pelacak lari dapat menyimpan lari sebagai file <strong>GPX</strong>. Ekspor satu, lalu pilih di atas.</p><p><strong>Strava</strong> (buka strava.com di peramban web):</p><ol><li>Buka lari yang Anda inginkan.</li><li>Klik menu tiga titik (...).</li><li>Pilih <strong>Export GPX</strong>.</li></ol><p><strong>Garmin Connect</strong>:</p><ol><li>Buka aktivitas.</li><li>Buka menu (roda gigi atau tiga titik).</li><li>Pilih <strong>Export to GPX</strong>.</li></ol><p><strong>Apple Health / Fitness</strong> (iPhone):</p><ol><li>Apple tidak mengekspor GPX secara langsung.</li><li>Pasang aplikasi gratis seperti <strong>HealthFit</strong> atau <strong>RunGap</strong>.</li><li>Buka latihan Anda di sana lalu ekspor sebagai GPX.</li></ol>",
           "prefs.summary": "Preferensi tampilan",
           "label.unit": "Satuan jarak", "unit.auto": "Otomatis", "unit.km": "Kilometer", "unit.mi": "Mil",
           "card2.title": "Sesuaikan video Anda", "card2.sub": "Rentang, gerakan, format & kualitas",
@@ -992,6 +1051,8 @@
           "hint.social": "Ditampilkan di kanan bawah video Anda, mis. Instagram: @namaanda",
           "sw.exact": "Pilih tanggal tertentu", "sw.exactsub": "Batasi animasi ke rentang tanggal",
           "label.start": "Tanggal mulai", "label.end": "Tanggal selesai",
+          "tod.label": "Filter berdasarkan waktu", "tod.sub": "Hanya sertakan titik dalam rentang waktu harian (mis. lari pagi)",
+          "tod.start": "Waktu mulai", "tod.end": "Waktu selesai",
           "label.mapStyle": "Gaya peta",
           "map.light": "Jalan (terang)", "map.color": "Jalan (warna)", "map.satellite": "Satelit", "map.dark": "Gelap", "map.osm": "OpenStreetMap",
           "label.camera": "Gerakan kamera",
