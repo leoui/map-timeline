@@ -21,6 +21,8 @@ const TRAIL_PALETTES = {
     head: '#D91A5A', headStroke: '#fff',
     start: '#fff', startStroke: '#D91A5A',
     ring: (a) => `rgba(217, 26, 90, ${a})`,
+    // Round-capped near-zero dashes render as circular dots.
+    widthMul: 1, cap: 'round', dash: (w) => [0.01, w * 2.4],
   },
   satellite: {
     trail: '#FFE000',
@@ -28,6 +30,8 @@ const TRAIL_PALETTES = {
     head: '#FFE000', headStroke: '#1a1a1a',
     start: '#1a1a1a', startStroke: '#FFE000',
     ring: (a) => `rgba(255, 224, 0, ${a})`,
+    // A thicker dashed line with roomy gaps, easier to follow over imagery.
+    widthMul: 1.7, cap: 'butt', dash: (w) => [w * 3, w * 2.6],
   },
 };
 
@@ -119,8 +123,8 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
   });
 
   const pal = trailPalette();
-  const lineWidth = Math.max(2, width / 200);
-  const dash = [0.01, lineWidth * 2.4];
+  const lineWidth = Math.max(2, width / 200) * (pal.widthMul || 1);
+  const dash = pal.dash(lineWidth);
 
   // Optional dark casing behind the trail so a bright line stays legible over
   // both light and dark ground (used on satellite imagery).
@@ -130,9 +134,9 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
     ctx.moveTo(canvasPts[0].x, canvasPts[0].y);
     for (let i = 1; i < canvasPts.length; i++) ctx.lineTo(canvasPts[i].x, canvasPts[i].y);
     ctx.strokeStyle = pal.casing;
-    ctx.lineWidth = lineWidth * 1.9;
+    ctx.lineWidth = lineWidth * 1.7;
     ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
+    ctx.lineCap = pal.cap;
     ctx.setLineDash(dash);
     ctx.stroke();
     ctx.restore();
@@ -153,9 +157,9 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
   ctx.strokeStyle = pal.trail;
   ctx.lineWidth = lineWidth;
   ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  // Round-capped near-zero dashes render as circular dots; the gap scales with
-  // line width so the spacing looks consistent across output resolutions.
+  ctx.lineCap = pal.cap;
+  // Dots (round-capped near-zero dashes) or dashes, per the basemap palette; the
+  // pattern scales with line width so spacing looks consistent across sizes.
   ctx.setLineDash(dash);
   ctx.stroke();
   ctx.restore();
