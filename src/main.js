@@ -14,6 +14,7 @@ import { filterOutliers, totalDistanceMetres } from './journey/filter.js';
 import { buildFrames, easeInOut } from './journey/interpolate.js';
 import { createCameraState, representativeZoom } from './journey/camera.js';
 import { prefetchAlongPath, setTileProvider, CURRENT_ATTRIBUTION } from './map/tiles.js';
+import { setTrailStyle } from './map/renderer.js';
 import { fitZoom, fitZoomFractional } from './map/projection.js';
 import { createCompositor } from './video/compositor.js';
 import { encode, supportsH264 } from './video/encoder.js';
@@ -192,6 +193,14 @@ let overlayImage = null;
     if (previewOpen()) onPreview();
   });
 
+  // Trail thickness / spacing sliders: update the renderer and re-preview live.
+  for (const id of ['trailWidth', 'trailGap']) {
+    document.getElementById(id)?.addEventListener('input', () => {
+      applyTrailStyle();
+      if (previewOpen()) onPreview();
+    });
+  }
+
   // Wire background mode (map vs photo overlay).
   updatePhotoUI();
   document.getElementById('backgroundMode')?.addEventListener('change', () => {
@@ -248,6 +257,14 @@ function setStravaBusy(busy) {
 function applyMapStyle() {
   const style = document.getElementById('mapStyle')?.value || 'carto_light';
   try { setTileProvider(style); } catch { /* ignore unknown style */ }
+  applyTrailStyle();
+}
+
+/** Push the trail thickness / spacing sliders into the renderer. */
+function applyTrailStyle() {
+  const widthMul = parseFloat(document.getElementById('trailWidth')?.value || '1');
+  const gapMul = parseFloat(document.getElementById('trailGap')?.value || '1');
+  setTrailStyle({ widthMul, gapMul });
 }
 
 function previewOpen() {

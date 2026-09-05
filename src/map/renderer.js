@@ -40,6 +40,20 @@ function trailPalette() {
 }
 
 /**
+ * User-adjustable trail tuning, applied on top of the per-basemap palette:
+ *   widthMul - overall line-thickness multiplier
+ *   gapMul   - spacing multiplier (larger = more spread out dashes/dots)
+ */
+let trailWidthMul = 1;
+let trailGapMul = 1;
+
+/** @param {{ widthMul?: number, gapMul?: number }} s */
+export function setTrailStyle(s = {}) {
+  if (Number.isFinite(s.widthMul)) trailWidthMul = s.widthMul;
+  if (Number.isFinite(s.gapMul)) trailGapMul = s.gapMul;
+}
+
+/**
  * Draw the map background and journey path onto a canvas.
  *
  * The trail is drawn through EXACTLY the points in `path`, and the head dot sits
@@ -123,8 +137,10 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
   });
 
   const pal = trailPalette();
-  const lineWidth = Math.max(2, width / 200) * (pal.widthMul || 1);
-  const dash = pal.dash(lineWidth);
+  const lineWidth = Math.max(2, width / 200) * (pal.widthMul || 1) * trailWidthMul;
+  // Base dash from the palette, with the gap scaled by the user's spacing slider.
+  const baseDash = pal.dash(lineWidth);
+  const dash = [baseDash[0], baseDash[1] * trailGapMul];
 
   // Optional dark casing behind the trail so a bright line stays legible over
   // both light and dark ground (used on satellite imagery).
