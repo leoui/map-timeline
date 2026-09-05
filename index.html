@@ -279,6 +279,28 @@
     .btn-outline:not(:disabled):hover { border-color: var(--rose); color: var(--rose); }
     .btn-ghost { background: transparent; color: var(--text-muted); }
     .btn-ghost:not(:disabled):hover { color: var(--rose); background: var(--rose-soft); }
+    .btn-strava { background: #FC4C02; color: #fff; margin-top: 10px; }
+    .btn-strava:not(:disabled):hover { background: #E34402; }
+
+    /* Activity picker modal */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      width: 100%; max-width: 460px; max-height: 80vh; display: flex; flex-direction: column;
+      box-shadow: var(--shadow-lg); overflow: hidden;
+    }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+    .modal-head strong { font-size: 1rem; }
+    .modal-close { border: none; background: none; color: var(--text-muted); font-size: 1rem; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+    .modal-close:hover { color: var(--rose); background: var(--ground-2); }
+    .activity-list { overflow-y: auto; padding: 8px; }
+    .activity { display: block; width: 100%; text-align: left; border: none; background: none; padding: 12px 14px; border-radius: 10px; cursor: pointer; font-family: inherit; }
+    .activity:hover { background: var(--ground-2); }
+    .activity-name { font-weight: 600; font-size: 0.95rem; color: var(--text); }
+    .activity-meta { font-size: 0.8rem; color: var(--text-sub); margin-top: 2px; }
 
     /* Action buttons: shown as a spaced vertical stack (display:flex set by JS). */
     .btn-row { flex-direction: column; gap: 14px; margin-top: 4px; }
@@ -571,6 +593,11 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
         <span data-i18n="sample">Try a fictional sample journey</span>
       </button>
+      <button class="btn btn-strava" id="stravaBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.4 17.8 13.2 13.5H10L15.4 24l5.4-10.5h-3.2M9.9 0 4.5 10.6h3.3L9.9 6.5l2.1 4.1h3.3z"/></svg>
+        <span data-i18n="strava.connect">Connect with Strava</span>
+      </button>
+      <span class="field-hint" data-i18n="strava.hint" style="display:block;margin-top:8px">Your Strava sign-in and the activity you pick pass through our server to reach Strava. We don't store them.</span>
 
       <div class="file-info" id="fileInfo"></div>
       <p class="codec-banner" id="codecBanner"></p>
@@ -907,7 +934,7 @@
         Google Maps and Google are trademarks of Google LLC.
       </p>
       <a href="/third-party-notices.txt" class="tp-link" target="_blank" rel="noopener" data-i18n="tp.notices">Third-party notices</a>
-      <div class="version" id="appVersion">Version: 20260826.Z05</div>
+      <div class="version" id="appVersion">Version: 20260826.Z06</div>
     </footer>
   </div>
 
@@ -968,7 +995,7 @@
           "step.upload": "Upload", "step.customize": "Customize", "step.render": "Render",
           "card1.title": "Add your Timeline", "card1.sub": "Your file never leaves this device",
           "dz.title": "Drop your Timeline or run file here", "dz.sub": "Timeline JSON, GPX or TCX. Tap to browse, up to ~200 MB",
-          "or": "or", "sample": "Try a fictional sample journey",
+          "or": "or", "sample": "Try a fictional sample journey", "strava.connect": "Connect with Strava", "strava.connecting": "Connecting to Strava…", "strava.hint": "Your Strava sign-in and the activity you pick pass through our server to reach Strava. We don't store them.",
           "howto.summary": "How to export your Timeline on iPhone",
           "howto.s1": "Open the Google Maps app and tap your profile photo.",
           "howto.s2": "Go to <strong>Your Timeline</strong>.",
@@ -1028,7 +1055,7 @@
           "step.upload": "Unggah", "step.customize": "Sesuaikan", "step.render": "Render",
           "card1.title": "Tambahkan Timeline Anda", "card1.sub": "File Anda tidak pernah meninggalkan perangkat ini",
           "dz.title": "Letakkan file Timeline atau lari Anda di sini", "dz.sub": "JSON Timeline, GPX atau TCX. Ketuk untuk menjelajah, hingga ~200 MB",
-          "or": "atau", "sample": "Coba contoh perjalanan fiktif",
+          "or": "atau", "sample": "Coba contoh perjalanan fiktif", "strava.connect": "Hubungkan dengan Strava", "strava.connecting": "Menghubungkan ke Strava…", "strava.hint": "Login Strava dan aktivitas yang Anda pilih melewati server kami untuk mencapai Strava. Kami tidak menyimpannya.",
           "howto.summary": "Cara mengekspor Timeline Anda di iPhone",
           "howto.s1": "Buka aplikasi Google Maps dan ketuk foto profil Anda.",
           "howto.s2": "Buka <strong>Timeline Anda</strong>.",

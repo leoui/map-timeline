@@ -9,6 +9,7 @@
 
 import { parseTimeline, summarise } from './parser.js';
 import { parseTrackFile } from './track-parser.js';
+import { stravaConnect, initStrava } from './strava.js';
 import { filterOutliers, totalDistanceMetres } from './journey/filter.js';
 import { buildFrames, easeInOut } from './journey/interpolate.js';
 import { createCameraState, representativeZoom } from './journey/camera.js';
@@ -122,7 +123,31 @@ let overlayImage = null;
   document.getElementById('photoBtn')?.addEventListener('click', () => document.getElementById('photoInput')?.click());
   document.getElementById('photoInput')?.addEventListener('change', onPhotoChange);
   document.getElementById('overlayStyle')?.addEventListener('change', () => { if (previewOpen()) onPreview(); });
+
+  // Strava connect + handle the OAuth redirect back.
+  document.getElementById('stravaBtn')?.addEventListener('click', stravaConnect);
+  initStrava({
+    onActivity: ({ points, title }) => {
+      setLoadedData(points, `${title} (Strava)`);
+      const t = document.getElementById('videoTitle');
+      if (t) t.value = title;
+    },
+    onError: showError,
+    onBusy: setStravaBusy,
+  });
 })();
+
+/** Reflect the Strava connection state on the button. */
+function setStravaBusy(busy) {
+  const btn = document.getElementById('stravaBtn');
+  if (!btn) return;
+  btn.disabled = busy;
+  const span = btn.querySelector('span');
+  if (span) {
+    const key = busy ? 'strava.connecting' : 'strava.connect';
+    span.textContent = (window.i18nText && window.i18nText(key)) || (busy ? 'Connecting to Strava…' : 'Connect with Strava');
+  }
+}
 
 /** Read the chosen map style and switch the global tile provider to it. */
 function applyMapStyle() {

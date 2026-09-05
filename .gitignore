@@ -6,3 +6,6 @@ dist/
 .dev.vars
 .vercel
 .npmrc
+.env
+.env.*
+.vercel
