@@ -12,6 +12,15 @@ describe('detectTimezoneOffsetMin', () => {
     const raw = [{ endTime: '2026-01-01T00:00:00Z' }, { startTime: '2026-01-01T09:00:00+09:00' }];
     expect(detectTimezoneOffsetMin(raw)).toBe(540);
   });
+  it('picks the majority (home) offset when the trip crosses zones', () => {
+    const raw = [
+      { startTime: '2026-01-01T08:00:00+07:00' },
+      { startTime: '2026-01-02T08:00:00+07:00' },
+      { startTime: '2026-03-01T08:00:00+09:00' }, // a short trip abroad
+      { startTime: '2026-01-03T08:00:00+07:00' },
+    ];
+    expect(detectTimezoneOffsetMin(raw)).toBe(420);
+  });
   it('falls back to 0 when every timestamp is Z', () => {
     expect(detectTimezoneOffsetMin([{ startTime: '2026-01-01T00:00:00Z' }])).toBe(0);
   });

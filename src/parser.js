@@ -238,44 +238,54 @@ function parseTimestamp(v) {
 }
 
 /**
- * Detect the timezone the data was recorded in, by scanning the raw JSON for the
- * first ISO datetime that carries an explicit UTC offset (e.g. "+07:00"). Google
- * Timeline visit/activity times carry the local offset; timelinePath uses "Z"
- * (UTC), so we prefer a real ±HH:MM offset and fall back to 0 only if every
- * timestamp is "Z". Returns offset in minutes east of UTC, or null if none.
+ * Detect the "home" timezone the data was mostly recorded in, by scanning the
+ * raw JSON's ISO datetimes and returning the MOST COMMON explicit UTC offset
+ * (e.g. "+07:00"). Using the dominant offset means a trip that briefly crossed
+ * into another zone (say GMT+9) is normalized back to the home zone (GMT+7) when
+ * that single offset is applied to every point, giving one consistent timeline.
+ *
+ * Google Timeline visit/activity times carry the local offset; timelinePath uses
+ * "Z" (UTC), so real ±HH:MM offsets are counted and "Z" only wins if nothing
+ * else appears. Returns offset in minutes east of UTC, or null if none.
  *
  * @param {any} raw
  * @returns {number|null}
  */
 export function detectTimezoneOffsetMin(raw) {
   const RE = /\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?\s*(Z|[+-]\d{2}:?\d{2})/;
-  let found = null;
+  const counts = new Map(); // offsetMin -> occurrences (Z excluded here)
   let sawZ = false;
-  let budget = 50000; // cap work on huge files
+  let budget = 200000; // sample cap for huge files; enough to find the majority
 
   const visit = (v, depth) => {
-    if (found != null || depth > 8 || budget <= 0) return;
+    if (depth > 8 || budget <= 0) return;
     if (typeof v === 'string') {
       budget--;
       const m = v.match(RE);
       if (m) {
         if (m[1] === 'Z' || m[1] === 'z') sawZ = true;
-        else found = offsetStringToMin(m[1]);
+        else { const o = offsetStringToMin(m[1]); counts.set(o, (counts.get(o) || 0) + 1); }
       }
       return;
     }
     if (Array.isArray(v)) {
-      for (let i = 0; i < v.length && found == null && budget > 0; i++) visit(v[i], depth + 1);
+      for (let i = 0; i < v.length && budget > 0; i++) visit(v[i], depth + 1);
       return;
     }
     if (v && typeof v === 'object') {
-      for (const k in v) { if (found != null || budget <= 0) break; visit(v[k], depth + 1); }
+      for (const k in v) { if (budget <= 0) break; visit(v[k], depth + 1); }
     }
   };
   visit(raw, 0);
 
-  if (found != null) return found;
-  return sawZ ? 0 : null;
+  if (counts.size === 0) return sawZ ? 0 : null;
+
+  let home = null;
+  let best = -1;
+  for (const [offset, n] of counts) {
+    if (n > best) { best = n; home = offset; }
+  }
+  return home;
 }
 
 /** "+07:00" | "-0530" | "Z" -> minutes east of UTC. */
