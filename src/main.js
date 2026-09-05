@@ -7,7 +7,7 @@
  * Imported by index.html as a module: <script type="module" src="src/main.js">
  */
 
-import { parseTimeline, summarise, detectTimezoneOffsetMin } from './parser.js';
+import { parseTimeline, summarise, detectTimezoneOffsetMin, majorityOffsetMin, distinctOffsets } from './parser.js';
 import { parseTrackFile } from './track-parser.js';
 import { stravaConnect, initStrava } from './strava.js';
 import { filterOutliers, totalDistanceMetres } from './journey/filter.js';
@@ -48,11 +48,60 @@ let loadedFilename = '';
  */
 let tzOffsetMin = -new Date().getTimezoneOffset();
 
+/**
+ * The "home" offset for the loaded data: the zone most of it was recorded in.
+ * When a journey crosses zones, the user can override the active offset with the
+ * timezone picker; `tzMode` says how the active `tzOffsetMin` is derived:
+ *   'home'  - always the home zone (default; one unified timeline)
+ *   'range' - the majority zone among the points in the selected date range
+ *   'fixed' - a specific zone the user picked (`tzFixedOffset`)
+ */
+let tzHomeOffset = -new Date().getTimezoneOffset();
+let tzMode = 'home';
+/** @type {number|null} */
+let tzFixedOffset = null;
+
 /** Viewer's own UTC offset in minutes, used as a fallback. */
 function viewerOffsetMin() { return -new Date().getTimezoneOffset(); }
 
-/** A point's wall-clock time (ms) in the data's timezone, treated as UTC. */
+/** A point's wall-clock time (ms) in the active timezone, treated as UTC. */
 function wallOf(p) { return p.timestampMs + tzOffsetMin * 60_000; }
+
+/** "GMT+09:00" style label for an offset in minutes east of UTC. */
+function gmtLabel(min) {
+  const sign = min < 0 ? '-' : '+';
+  const a = Math.abs(min);
+  const hh = String(Math.floor(a / 60)).padStart(2, '0');
+  const mm = String(a % 60).padStart(2, '0');
+  return `GMT${sign}${hh}:${mm}`;
+}
+
+/**
+ * Fill the timezone picker from the zones actually present in the data, and show
+ * it only when the journey genuinely spans more than one zone. Resets to the
+ * home zone on every fresh load.
+ * @param {import('./types.js').LocationPoint[]} points
+ */
+function populateTimezonePicker(points) {
+  const row = document.getElementById('tzRow');
+  const sel = document.getElementById('tzSelect');
+  tzMode = 'home';
+  tzFixedOffset = null;
+  if (!row || !sel) return;
+
+  const offs = distinctOffsets(points);
+  if (offs.length < 2) { row.style.display = 'none'; return; } // single zone: nothing to choose
+
+  const t = (k, fb) => (window.i18nText && window.i18nText(k)) || fb;
+  const opts = [
+    `<option value="home">${t('tz.home', 'Home zone (most of your data)')} (${gmtLabel(tzHomeOffset)})</option>`,
+    `<option value="range">${t('tz.range', 'Match the selected date range')}</option>`,
+  ];
+  for (const o of offs) opts.push(`<option value="fix:${o.offsetMin}">${gmtLabel(o.offsetMin)}</option>`);
+  sel.innerHTML = opts.join('');
+  sel.value = 'home';
+  row.style.display = 'block';
+}
 
 /**
  * The most recently encoded video, kept so the Download button can save it
@@ -111,6 +160,16 @@ let overlayImage = null;
   document.getElementById('startDate')?.addEventListener('change', recomputeSelection);
   document.getElementById('endDate')?.addEventListener('change', recomputeSelection);
 
+  // Timezone picker for cross-zone journeys.
+  document.getElementById('tzSelect')?.addEventListener('change', (e) => {
+    const v = e.target.value;
+    if (v === 'range') { tzMode = 'range'; tzFixedOffset = null; }
+    else if (v.startsWith('fix:')) { tzMode = 'fixed'; tzFixedOffset = parseInt(v.slice(4), 10); }
+    else { tzMode = 'home'; tzFixedOffset = null; }
+    recomputeSelection();
+    if (previewOpen()) onPreview();
+  });
+
   // Time-of-day filter toggle + inputs.
   document.getElementById('exactTimes')?.addEventListener('change', () => {
     const row = document.getElementById('timeRow');
@@ -149,7 +208,7 @@ let overlayImage = null;
     onActivity: ({ points, title, activity }) => {
       // Filter in the activity's own local timezone (from Strava's start_date_local).
       const off = stravaOffsetMin(activity);
-      tzOffsetMin = off != null ? off : viewerOffsetMin();
+      tzHomeOffset = off != null ? off : viewerOffsetMin();
       setLoadedData(points, `${title} (Strava)`);
       stravaActivity = activity || null; // set after load (setLoadedData path clears it)
       const t = document.getElementById('videoTitle');
@@ -250,13 +309,14 @@ async function onFileChange(e) {
     let parsed;
     if (track) {
       parsed = track;
-      tzOffsetMin = viewerOffsetMin(); // GPX/TCX times are UTC; no local zone to read
+      tzHomeOffset = viewerOffsetMin(); // GPX/TCX times are UTC; no local zone to read
     } else {
       const raw = JSON.parse(text);
       parsed = parseTimeline(raw);
-      // Use the timezone recorded in the data (e.g. +07:00), not the device's.
-      const detected = detectTimezoneOffsetMin(raw);
-      tzOffsetMin = detected != null ? detected : viewerOffsetMin();
+      // Home zone = the offset most of the data was recorded in (per-point),
+      // falling back to a raw scan then the device zone.
+      const detected = majorityOffsetMin(parsed) ?? detectTimezoneOffsetMin(raw);
+      tzHomeOffset = detected != null ? detected : viewerOffsetMin();
     }
     setLoadedData(parsed, file.name);
   } catch (err) {
@@ -266,7 +326,7 @@ async function onFileChange(e) {
 
 function onLoadSample() {
   const pts = samplePoints();
-  tzOffsetMin = viewerOffsetMin(); // sample data has no real timezone
+  tzHomeOffset = viewerOffsetMin(); // sample data has no real timezone
   setLoadedData(pts, SAMPLE_META.filename);
 
   const titleEl = document.getElementById('videoTitle');
@@ -284,6 +344,10 @@ function setLoadedData(points, filename) {
   loadedFilename = filename;
   stravaActivity = null; // uploads/samples have no Strava stats (re-set by the Strava path)
 
+  // Start in the home zone; offer the picker only when the data crosses zones.
+  tzOffsetMin = tzHomeOffset;
+  populateTimezonePicker(points);
+
   // Available range in the data's own timezone (wall clock), so the date fields
   // and hint show the days as recorded, not shifted by the viewer's zone.
   const minMs = wallOf(points[0]);
@@ -300,6 +364,20 @@ function setLoadedData(points, filename) {
  */
 function recomputeSelection() {
   if (!allRawPoints) return;
+
+  // Resolve the active display offset from the chosen timezone mode. For 'range',
+  // decide membership with the home zone first, then adopt the majority zone of
+  // those points so a trip abroad is shown in its own local time.
+  if (tzMode === 'fixed' && tzFixedOffset != null) {
+    tzOffsetMin = tzFixedOffset;
+  } else if (tzMode === 'range') {
+    tzOffsetMin = tzHomeOffset;
+    const r = controls.readDateRange();
+    const cand = allRawPoints.filter((p) => { const w = wallOf(p); return w >= r.startMs && w <= r.endMs; });
+    tzOffsetMin = majorityOffsetMin(cand) ?? tzHomeOffset;
+  } else {
+    tzOffsetMin = tzHomeOffset;
+  }
 
   // Date range + time-of-day are both evaluated in the data's own timezone
   // (wall clock), read from the file, not the viewer's device zone.

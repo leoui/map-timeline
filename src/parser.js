@@ -85,7 +85,7 @@ function parseFormatAB(locations) {
     const ts = parseTimestamp(loc.timestampMs ?? loc.timestamp);
 
     if (!isValidCoord(lat, lng) || ts == null) continue;
-    out.push({ lat, lng, timestampMs: ts });
+    out.push({ lat, lng, timestampMs: ts, offsetMin: offsetMinFromISO(loc.timestamp) });
   }
   return out;
 }
@@ -100,7 +100,7 @@ function parseFormatC(segments) {
       const coord = parseGeoPoint(entry.point);
       const ts = parseTimestamp(entry.time);
       if (!coord || ts == null) continue;
-      out.push({ lat: coord.lat, lng: coord.lng, timestampMs: ts });
+      out.push({ lat: coord.lat, lng: coord.lng, timestampMs: ts, offsetMin: offsetMinFromISO(entry.time) });
     }
 
     // Also pull start/end of any placeVisit or activitySegment if present
@@ -108,7 +108,7 @@ function parseFormatC(segments) {
       const ts = parseTimestamp(seg.startTime);
       const lat = (seg.startLocation.latitudeE7 ?? 0) / 1e7;
       const lng = (seg.startLocation.longitudeE7 ?? 0) / 1e7;
-      if (isValidCoord(lat, lng) && ts != null) out.push({ lat, lng, timestampMs: ts });
+      if (isValidCoord(lat, lng) && ts != null) out.push({ lat, lng, timestampMs: ts, offsetMin: offsetMinFromISO(seg.startTime) });
     }
   }
   return out;
@@ -137,12 +137,14 @@ function parseFormatMobile(records) {
   for (const rec of records) {
     const startMs = parseTimestamp(rec.startTime);
     const endMs = parseTimestamp(rec.endTime);
+    const startOff = offsetMinFromISO(rec.startTime);
+    const endOff = offsetMinFromISO(rec.endTime);
 
     // A stationary visit: one point at the start of the segment.
     if (rec.visit) {
       const coord = parseGeoPoint(rec.visit.topCandidate?.placeLocation);
       if (coord && startMs != null) {
-        out.push({ lat: coord.lat, lng: coord.lng, timestampMs: startMs });
+        out.push({ lat: coord.lat, lng: coord.lng, timestampMs: startMs, offsetMin: startOff });
       }
     }
 
@@ -150,8 +152,8 @@ function parseFormatMobile(records) {
     if (rec.activity) {
       const s = parseGeoPoint(rec.activity.start);
       const e = parseGeoPoint(rec.activity.end);
-      if (s && startMs != null) out.push({ lat: s.lat, lng: s.lng, timestampMs: startMs });
-      if (e && endMs != null) out.push({ lat: e.lat, lng: e.lng, timestampMs: endMs });
+      if (s && startMs != null) out.push({ lat: s.lat, lng: s.lng, timestampMs: startMs, offsetMin: startOff });
+      if (e && endMs != null) out.push({ lat: e.lat, lng: e.lng, timestampMs: endMs, offsetMin: endOff ?? startOff });
     }
 
     // A dense path: each point carries a minute offset from the segment start.
@@ -161,7 +163,7 @@ function parseFormatMobile(records) {
         if (!coord) continue;
         const offMin = Number(entry.durationMinutesOffsetFromStartTime);
         const ts = isFinite(offMin) ? startMs + offMin * 60_000 : startMs;
-        out.push({ lat: coord.lat, lng: coord.lng, timestampMs: ts });
+        out.push({ lat: coord.lat, lng: coord.lng, timestampMs: ts, offsetMin: startOff });
       }
     }
 
@@ -182,21 +184,21 @@ function parseTimelineObjects(objects) {
       const lat = (pv.location.latitudeE7 ?? 0) / 1e7;
       const lng = (pv.location.longitudeE7 ?? 0) / 1e7;
       const ts = parseTimestamp(pv.duration?.startTimestampMs ?? pv.duration?.startTimestamp);
-      if (isValidCoord(lat, lng) && ts != null) out.push({ lat, lng, timestampMs: ts });
+      if (isValidCoord(lat, lng) && ts != null) out.push({ lat, lng, timestampMs: ts, offsetMin: offsetMinFromISO(pv.duration?.startTimestamp) });
     }
 
     if (as?.startLocation) {
       const lat = (as.startLocation.latitudeE7 ?? 0) / 1e7;
       const lng = (as.startLocation.longitudeE7 ?? 0) / 1e7;
       const ts = parseTimestamp(as.duration?.startTimestampMs ?? as.duration?.startTimestamp);
-      if (isValidCoord(lat, lng) && ts != null) out.push({ lat, lng, timestampMs: ts });
+      if (isValidCoord(lat, lng) && ts != null) out.push({ lat, lng, timestampMs: ts, offsetMin: offsetMinFromISO(as.duration?.startTimestamp) });
     }
 
     if (as?.waypointPath?.waypoints) {
       for (const wp of as.waypointPath.waypoints) {
         const lat = (wp.latE7 ?? 0) / 1e7;
         const lng = (wp.lngE7 ?? 0) / 1e7;
-        if (isValidCoord(lat, lng)) out.push({ lat, lng, timestampMs: 0 });
+        if (isValidCoord(lat, lng)) out.push({ lat, lng, timestampMs: 0, offsetMin: null });
       }
     }
   }
@@ -286,6 +288,59 @@ export function detectTimezoneOffsetMin(raw) {
     if (n > best) { best = n; home = offset; }
   }
   return home;
+}
+
+/**
+ * Extract the local UTC offset carried by a single ISO datetime string, in
+ * minutes east of UTC. Returns null for "Z" (UTC, i.e. no local-zone info) and
+ * for values without a recognisable offset, so UTC-only points do not vote when
+ * we later work out the dominant zone.
+ * @param {any} v
+ * @returns {number|null}
+ */
+export function offsetMinFromISO(v) {
+  if (typeof v !== 'string') return null;
+  const m = v.match(/[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?\s*(Z|[+-]\d{2}:?\d{2})/);
+  if (!m || m[1] === 'Z' || m[1] === 'z') return null;
+  return offsetStringToMin(m[1]);
+}
+
+/**
+ * Most common per-point offset (minutes east of UTC) across the given points,
+ * ignoring points that carry no local-zone info. Returns null if none do.
+ * @param {import('./types.js').LocationPoint[]} points
+ * @returns {number|null}
+ */
+export function majorityOffsetMin(points) {
+  const counts = new Map();
+  for (const p of points) {
+    if (p == null || p.offsetMin == null) continue;
+    counts.set(p.offsetMin, (counts.get(p.offsetMin) || 0) + 1);
+  }
+  let home = null;
+  let best = -1;
+  for (const [offset, n] of counts) {
+    if (n > best) { best = n; home = offset; }
+  }
+  return home;
+}
+
+/**
+ * Distinct per-point offsets present in the data, each with an occurrence count,
+ * sorted most-common first. Feeds the timezone picker so it only ever offers
+ * zones that actually appear in the file.
+ * @param {import('./types.js').LocationPoint[]} points
+ * @returns {{ offsetMin: number, count: number }[]}
+ */
+export function distinctOffsets(points) {
+  const counts = new Map();
+  for (const p of points) {
+    if (p == null || p.offsetMin == null) continue;
+    counts.set(p.offsetMin, (counts.get(p.offsetMin) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([offsetMin, count]) => ({ offsetMin, count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 /** "+07:00" | "-0530" | "Z" -> minutes east of UTC. */

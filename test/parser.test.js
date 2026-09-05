@@ -1,5 +1,43 @@
 import { describe, it, expect } from 'vitest';
-import { parseTimeline, summarise, detectTimezoneOffsetMin } from '../src/parser.js';
+import { parseTimeline, summarise, detectTimezoneOffsetMin, offsetMinFromISO, majorityOffsetMin, distinctOffsets } from '../src/parser.js';
+
+describe('per-point timezone helpers', () => {
+  it('offsetMinFromISO reads an offset and treats Z as unknown (null)', () => {
+    expect(offsetMinFromISO('2026-01-01T08:00:00+09:00')).toBe(540);
+    expect(offsetMinFromISO('2026-01-01T08:00:00-05:30')).toBe(-330);
+    expect(offsetMinFromISO('2026-01-01T08:00:00Z')).toBe(null);
+    expect(offsetMinFromISO(1700000000000)).toBe(null);
+  });
+
+  it('parsed points carry their local offset, and majority ignores UTC-only points', () => {
+    // Jakarta trip that crosses into Japan for one segment.
+    const raw = [
+      { startTime: '2026-01-02T08:00:00+07:00', endTime: '2026-01-02T09:00:00+07:00',
+        visit: { topCandidate: { placeLocation: 'geo:-6.2,106.8' } } },
+      { startTime: '2026-01-03T08:00:00+09:00', endTime: '2026-01-03T09:00:00+09:00',
+        activity: { start: 'geo:35.6,139.7', end: 'geo:35.7,139.8' } },
+      { startTime: '2026-01-06T08:00:00+07:00', endTime: '2026-01-06T09:00:00+07:00',
+        visit: { topCandidate: { placeLocation: 'geo:-6.2,106.8' } } },
+    ];
+    const pts = parseTimeline(raw);
+    expect(pts.every((p) => p.offsetMin != null)).toBe(true);
+    // Two Jakarta points vs two Japan points -> Jakarta wins on count only if it
+    // has more; here it is 2 vs 2, so ensure both zones are represented.
+    const offs = distinctOffsets(pts).map((o) => o.offsetMin).sort((a, b) => a - b);
+    expect(offs).toEqual([420, 540]);
+  });
+
+  it('majorityOffsetMin picks the most common per-point offset', () => {
+    const pts = [
+      { lat: 0, lng: 0, timestampMs: 1, offsetMin: 420 },
+      { lat: 0, lng: 0, timestampMs: 2, offsetMin: 420 },
+      { lat: 0, lng: 0, timestampMs: 3, offsetMin: 540 },
+      { lat: 0, lng: 0, timestampMs: 4, offsetMin: null },
+    ];
+    expect(majorityOffsetMin(pts)).toBe(420);
+    expect(majorityOffsetMin([{ timestampMs: 1, offsetMin: null }])).toBe(null);
+  });
+});
 
 describe('detectTimezoneOffsetMin', () => {
   it('reads a positive offset from an ISO timestamp', () => {

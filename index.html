@@ -750,6 +750,12 @@
       </div>
       <div class="date-hint" id="dateHint" style="display:none"></div>
 
+      <div class="field" id="tzRow" style="display:none;margin-top:12px">
+        <label for="tzSelect" data-i18n="tz.label">Time zone for this video</label>
+        <select id="tzSelect"></select>
+        <div class="sw-sub" id="tzHint" data-i18n="tz.sub" style="margin-top:6px">Your trip crossed time zones. Choose which zone the times are shown in.</div>
+      </div>
+
       <div class="switch-row" style="margin-top:14px">
         <div>
           <div class="sw-label" data-i18n="tod.label">Filter by time of day</div>
@@ -934,7 +940,7 @@
         Google Maps and Google are trademarks of Google LLC.
       </p>
       <a href="/third-party-notices.txt" class="tp-link" target="_blank" rel="noopener" data-i18n="tp.notices">Third-party notices</a>
-      <div class="version" id="appVersion">Version: 20260905.Z04</div>
+      <div class="version" id="appVersion">Version: 20260905.Z05</div>
     </footer>
   </div>
 
@@ -1020,6 +1026,8 @@
           "label.start": "Start date", "label.end": "End date",
           "tod.label": "Filter by time of day", "tod.sub": "Only include points within a daily time window (e.g. a morning run)",
           "tod.start": "Start time", "tod.end": "End time",
+          "tz.label": "Time zone for this video", "tz.sub": "Your trip crossed time zones. Choose which zone the times are shown in.",
+          "tz.home": "Home zone (most of your data)", "tz.range": "Match the selected date range",
           "label.mapStyle": "Map style",
           "map.light": "Street (light)", "map.color": "Street (color)", "map.satellite": "Satellite", "map.dark": "Dark", "map.osm": "OpenStreetMap",
           "label.camera": "Camera movement",
@@ -1081,6 +1089,8 @@
           "sw.exact": "Pilih tanggal tertentu", "sw.exactsub": "Batasi animasi ke rentang tanggal",
           "label.start": "Tanggal mulai", "label.end": "Tanggal selesai",
           "tod.label": "Filter berdasarkan waktu", "tod.sub": "Hanya sertakan titik dalam rentang waktu harian (mis. lari pagi)",
+          "tz.label": "Zona waktu untuk video ini", "tz.sub": "Perjalanan Anda melintasi zona waktu. Pilih zona mana yang dipakai untuk menampilkan waktu.",
+          "tz.home": "Zona rumah (mayoritas data Anda)", "tz.range": "Ikuti rentang tanggal terpilih",
           "tod.start": "Waktu mulai", "tod.end": "Waktu selesai",
           "label.mapStyle": "Gaya peta",
           "map.light": "Jalan (terang)", "map.color": "Jalan (warna)", "map.satellite": "Satelit", "map.dark": "Gelap", "map.osm": "OpenStreetMap",

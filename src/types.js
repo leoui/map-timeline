@@ -3,6 +3,7 @@
  * @property {number} lat          - Decimal degrees
  * @property {number} lng          - Decimal degrees
  * @property {number} timestampMs  - Unix epoch milliseconds
+ * @property {number|null} [offsetMin] - Local UTC offset the point was recorded in (minutes east of UTC), or null if unknown
  */
 
 /**
