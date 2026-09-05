@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy - GoogleMap Visualizer</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --rose:#D91A5A; --ground:#FBF4F6; --surface:#FFFFFF; --border:#ECD5E0;
+    --text:#1C0F15; --text-muted:#7D5F6D; --text-sub:#A8839A;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:#150A0F; --surface:#241320; --border:#3A1F2E;
+      --text:#F5EDF1; --text-muted:#B591A3; --text-sub:#7A5568;
+    }
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Inter',system-ui,sans-serif; background:var(--ground); color:var(--text);
+         line-height:1.65; padding:32px 18px 80px; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:720px; margin:0 auto; }
+  a { color:var(--rose); }
+  .back { display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; font-weight:600; text-decoration:none; margin-bottom:24px; }
+  h1 { font-family:'Instrument Serif',Georgia,serif; font-style:italic; font-weight:400; font-size:clamp(2rem,6vw,2.75rem); letter-spacing:-0.01em; }
+  .updated { color:var(--text-sub); font-size:0.85rem; margin-top:6px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px; margin-top:22px; }
+  h2 { font-size:1.15rem; font-weight:700; margin:26px 0 8px; letter-spacing:-0.01em; }
+  h2:first-child { margin-top:0; }
+  h3 { font-size:0.95rem; font-weight:600; margin:16px 0 4px; }
+  p { color:var(--text-muted); margin-top:8px; }
+  ul { color:var(--text-muted); margin:8px 0 0 20px; display:flex; flex-direction:column; gap:6px; }
+  strong { color:var(--text); font-weight:600; }
+  .lang-nav { display:flex; gap:8px; margin-top:16px; }
+  .lang-nav a { font-size:0.85rem; font-weight:600; text-decoration:none; padding:6px 12px; border:1px solid var(--border); border-radius:999px; }
+  hr { border:none; border-top:1px solid var(--border); margin:40px 0; }
+  footer { text-align:center; color:var(--text-sub); font-size:0.8rem; margin-top:40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← Back to GoogleMap Visualizer</a>
+  <h1>Privacy Policy</h1>
+  <div class="updated">Last updated: 26 August 2026</div>
+  <div class="lang-nav"><a href="#en">English</a><a href="#id">Bahasa Indonesia</a></div>
+
+  <!-- ─────────────── ENGLISH ─────────────── -->
+  <div class="card" id="en">
+    <h2>The short version</h2>
+    <p>GoogleMap Visualizer turns your location history or a run file into a video, <strong>right in your browser</strong>. Your Timeline JSON, GPX, TCX, and photo files are <strong>never uploaded to us</strong>. We don't have accounts, we don't sell data, and we don't run analytics or advertising trackers.</p>
+
+    <h2>What stays on your device</h2>
+    <ul>
+      <li>Your uploaded <strong>Timeline JSON, GPX, or TCX files</strong> are read and processed entirely in your browser.</li>
+      <li>Any <strong>photo</strong> you add for the overlay stays in your browser and is only drawn into the video locally.</li>
+      <li>The finished <strong>MP4</strong> is created on your device; you choose where to save it.</li>
+      <li>Your <strong>theme and language</strong> choices are stored in your browser's local storage. They stay on your device and are never sent to us.</li>
+    </ul>
+
+    <h2>What is sent to third parties</h2>
+    <p>To draw the map and a few conveniences, some standard network requests happen. In each case the third party receives normal network information, including your <strong>IP address</strong>.</p>
+    <h3>Map tiles</h3>
+    <p>To render the map, your browser requests map tiles from <strong>CARTO</strong> and <strong>OpenStreetMap</strong>. They receive the tile coordinates for the map areas in your selected journey. This can reveal the general areas of your route to those providers.</p>
+    <h3>Language detection</h3>
+    <p>If your language isn't already set, we may make a one-time request to a geolocation service (<strong>ipapi.co</strong>) to guess your country from your IP address, so we can show the app in the right language. You can override this at any time with the language toggle.</p>
+    <h3>Hosting</h3>
+    <p>The site is served by <strong>Vercel</strong> and <strong>Cloudflare</strong>, which may log request information such as IP addresses for standard operational and security purposes.</p>
+
+    <h2>If you connect Strava</h2>
+    <p>Connecting Strava is optional. If you choose it:</p>
+    <ul>
+      <li>You sign in on Strava's own screen and approve access. We request the <strong>activity:read_all</strong> permission so we can read your activities and their routes.</li>
+      <li>Your sign-in and the activity you pick pass through <strong>our serverless function</strong> to reach Strava (Strava's API can't be called directly from a browser). We use this only to fetch the activity and its route, and <strong>we do not store</strong> your token or your activity data.</li>
+      <li>You can revoke our access anytime at <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">strava.com/settings/apps</a>.</li>
+    </ul>
+
+    <h2>Data retention</h2>
+    <p>We do not run a database and do not store your location data, files, or Strava data. Standard server logs kept by our hosting and the map providers are governed by their own policies.</p>
+
+    <h2>Your choices</h2>
+    <ul>
+      <li>Don't connect Strava if you'd rather not use it.</li>
+      <li>Clear your browser's local storage to reset the saved theme and language.</li>
+      <li>Revoke Strava access at any time from your Strava settings.</li>
+    </ul>
+
+    <h2>Children</h2>
+    <p>This tool is not directed at children under 13, and we do not knowingly collect information from them.</p>
+
+    <h2>Changes</h2>
+    <p>We may update this policy as the app changes. The "last updated" date above will reflect any changes.</p>
+
+    <h2>Contact</h2>
+    <p>Questions? Reach out on Instagram: <a href="https://instagram.com/lverdatama" target="_blank" rel="noopener">@lverdatama</a>.</p>
+  </div>
+
+  <hr>
+
+  <!-- ─────────────── BAHASA INDONESIA ─────────────── -->
+  <div class="card" id="id" lang="id">
+    <h2>Ringkasnya</h2>
+    <p>GoogleMap Visualizer mengubah riwayat lokasi atau file lari Anda menjadi video, <strong>langsung di peramban Anda</strong>. File Timeline JSON, GPX, TCX, dan foto Anda <strong>tidak pernah diunggah ke kami</strong>. Kami tidak memakai akun, tidak menjual data, dan tidak menjalankan pelacak analitik maupun iklan.</p>
+
+    <h2>Yang tetap di perangkat Anda</h2>
+    <ul>
+      <li>File <strong>Timeline JSON, GPX, atau TCX</strong> yang Anda unggah dibaca dan diproses sepenuhnya di peramban Anda.</li>
+      <li><strong>Foto</strong> yang Anda tambahkan untuk overlay tetap di peramban dan hanya digambar ke video secara lokal.</li>
+      <li><strong>MP4</strong> yang jadi dibuat di perangkat Anda; Anda yang memilih tempat menyimpannya.</li>
+      <li>Pilihan <strong>tema dan bahasa</strong> disimpan di penyimpanan lokal peramban Anda. Semuanya tetap di perangkat Anda dan tidak pernah dikirim ke kami.</li>
+    </ul>
+
+    <h2>Yang dikirim ke pihak ketiga</h2>
+    <p>Untuk menggambar peta dan beberapa kemudahan, ada permintaan jaringan standar. Dalam tiap kasus, pihak ketiga menerima informasi jaringan normal, termasuk <strong>alamat IP</strong> Anda.</p>
+    <h3>Ubin peta</h3>
+    <p>Untuk merender peta, peramban Anda meminta ubin peta dari <strong>CARTO</strong> dan <strong>OpenStreetMap</strong>. Mereka menerima koordinat ubin untuk area peta dalam perjalanan yang Anda pilih. Ini dapat mengungkap area umum rute Anda kepada penyedia tersebut.</p>
+    <h3>Deteksi bahasa</h3>
+    <p>Jika bahasa Anda belum diatur, kami mungkin membuat satu permintaan ke layanan geolokasi (<strong>ipapi.co</strong>) untuk menebak negara Anda dari alamat IP, agar aplikasi tampil dalam bahasa yang tepat. Anda bisa menggantinya kapan saja dengan tombol bahasa.</p>
+    <h3>Hosting</h3>
+    <p>Situs ini dilayani oleh <strong>Vercel</strong> dan <strong>Cloudflare</strong>, yang dapat mencatat informasi permintaan seperti alamat IP untuk keperluan operasional dan keamanan standar.</p>
+
+    <h2>Jika Anda menghubungkan Strava</h2>
+    <p>Menghubungkan Strava bersifat opsional. Jika Anda memilihnya:</p>
+    <ul>
+      <li>Anda masuk di layar milik Strava dan menyetujui akses. Kami meminta izin <strong>activity:read_all</strong> agar dapat membaca aktivitas dan rutenya.</li>
+      <li>Login dan aktivitas yang Anda pilih melewati <strong>fungsi serverless kami</strong> untuk mencapai Strava (API Strava tidak bisa dipanggil langsung dari peramban). Kami memakainya hanya untuk mengambil aktivitas dan rutenya, dan <strong>kami tidak menyimpan</strong> token atau data aktivitas Anda.</li>
+      <li>Anda dapat mencabut akses kami kapan saja di <a href="https://www.strava.com/settings/apps" target="_blank" rel="noopener">strava.com/settings/apps</a>.</li>
+    </ul>
+
+    <h2>Penyimpanan data</h2>
+    <p>Kami tidak menjalankan basis data dan tidak menyimpan data lokasi, file, atau data Strava Anda. Log server standar yang disimpan oleh hosting dan penyedia peta tunduk pada kebijakan mereka sendiri.</p>
+
+    <h2>Pilihan Anda</h2>
+    <ul>
+      <li>Jangan hubungkan Strava jika Anda memilih untuk tidak memakainya.</li>
+      <li>Hapus penyimpanan lokal peramban untuk mengatur ulang tema dan bahasa yang tersimpan.</li>
+      <li>Cabut akses Strava kapan saja dari pengaturan Strava Anda.</li>
+    </ul>
+
+    <h2>Anak-anak</h2>
+    <p>Alat ini tidak ditujukan untuk anak di bawah 13 tahun, dan kami tidak dengan sengaja mengumpulkan informasi dari mereka.</p>
+
+    <h2>Perubahan</h2>
+    <p>Kami dapat memperbarui kebijakan ini seiring perubahan aplikasi. Tanggal "terakhir diperbarui" di atas akan mencerminkan perubahannya.</p>
+
+    <h2>Kontak</h2>
+    <p>Ada pertanyaan? Hubungi lewat Instagram: <a href="https://instagram.com/lverdatama" target="_blank" rel="noopener">@lverdatama</a>.</p>
+  </div>
+
+  <footer>GoogleMap Visualizer · Not affiliated with, endorsed by, or sponsored by Google.</footer>
+</div>
+</body>
+</html>
