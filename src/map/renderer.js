@@ -6,7 +6,34 @@
  */
 
 import { latLngToPixel, TILE_SIZE } from './projection.js';
-import { fetchTile } from './tiles.js';
+import { fetchTile, CURRENT_PROVIDER_NAME } from './tiles.js';
+
+/**
+ * Trail/marker colours per basemap. On satellite imagery the rose brand colour
+ * is easily lost against grey urban and dark-green terrain, so we switch to a
+ * bright yellow with a dark casing behind it (a convention on aerial maps),
+ * which stays visible over light and dark ground alike.
+ */
+const TRAIL_PALETTES = {
+  default: {
+    trail: 'rgba(217, 26, 90, 0.75)',
+    casing: null,
+    head: '#D91A5A', headStroke: '#fff',
+    start: '#fff', startStroke: '#D91A5A',
+    ring: (a) => `rgba(217, 26, 90, ${a})`,
+  },
+  satellite: {
+    trail: '#FFE000',
+    casing: 'rgba(0, 0, 0, 0.55)',
+    head: '#FFE000', headStroke: '#1a1a1a',
+    start: '#1a1a1a', startStroke: '#FFE000',
+    ring: (a) => `rgba(255, 224, 0, ${a})`,
+  },
+};
+
+function trailPalette() {
+  return CURRENT_PROVIDER_NAME === 'satellite' ? TRAIL_PALETTES.satellite : TRAIL_PALETTES.default;
+}
 
 /**
  * Draw the map background and journey path onto a canvas.
@@ -91,6 +118,26 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
     return { x: px - originPx, y: py - originPy };
   });
 
+  const pal = trailPalette();
+  const lineWidth = Math.max(2, width / 200);
+  const dash = [0.01, lineWidth * 2.4];
+
+  // Optional dark casing behind the trail so a bright line stays legible over
+  // both light and dark ground (used on satellite imagery).
+  if (pal.casing) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(canvasPts[0].x, canvasPts[0].y);
+    for (let i = 1; i < canvasPts.length; i++) ctx.lineTo(canvasPts[i].x, canvasPts[i].y);
+    ctx.strokeStyle = pal.casing;
+    ctx.lineWidth = lineWidth * 1.9;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.setLineDash(dash);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   // Shadow for contrast
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.25)';
@@ -103,29 +150,29 @@ export async function renderMap(canvas, path, viewport, opts = {}) {
   for (let i = 1; i < canvasPts.length; i++) {
     ctx.lineTo(canvasPts[i].x, canvasPts[i].y);
   }
-  ctx.strokeStyle = 'rgba(217, 26, 90, 0.75)';
-  ctx.lineWidth = Math.max(2, width / 200);
+  ctx.strokeStyle = pal.trail;
+  ctx.lineWidth = lineWidth;
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   // Round-capped near-zero dashes render as circular dots; the gap scales with
   // line width so the spacing looks consistent across output resolutions.
-  ctx.setLineDash([0.01, ctx.lineWidth * 2.4]);
+  ctx.setLineDash(dash);
   ctx.stroke();
   ctx.restore();
 
   // ── 5. Draw start marker ────────────────────────────────────────────────────
-  drawDot(ctx, canvasPts[0].x, canvasPts[0].y, width / 80, '#fff', '#D91A5A');
+  drawDot(ctx, canvasPts[0].x, canvasPts[0].y, width / 80, pal.start, pal.startStroke);
 
   // ── 6. Draw current position dot ──────────────────────────────────────────
   const head = canvasPts[canvasPts.length - 1];
   const dotRadius = Math.max(6, width / 60);
-  drawDot(ctx, head.x, head.y, dotRadius, '#D91A5A', '#fff');
+  drawDot(ctx, head.x, head.y, dotRadius, pal.head, pal.headStroke);
 
   // Pulsing ring (drawn as two concentric strokes; animation is handled by
   // compositor.js which calls this function per frame with varying alpha)
   ctx.beginPath();
   ctx.arc(head.x, head.y, dotRadius * 1.8, 0, Math.PI * 2);
-  ctx.strokeStyle = `rgba(217, 26, 90, ${0.3 + 0.2 * Math.sin(pulsePhase * Math.PI * 40)})`;
+  ctx.strokeStyle = pal.ring(0.3 + 0.2 * Math.sin(pulsePhase * Math.PI * 40));
   ctx.lineWidth = 1.5;
   ctx.stroke();
 }

@@ -36,11 +36,14 @@ export const TILE_ATTRIBUTION = {
 // Change this to switch tile provider globally.
 export let TILE_PROVIDER = TILE_PROVIDERS.carto_light;
 export let CURRENT_ATTRIBUTION = TILE_ATTRIBUTION.carto_light;
+/** Name of the active provider, so the renderer can pick a contrasting trail. */
+export let CURRENT_PROVIDER_NAME = 'carto_light';
 
 /** @param {keyof typeof TILE_PROVIDERS} name */
 export function setTileProvider(name) {
   if (!TILE_PROVIDERS[name]) throw new Error(`Unknown tile provider: ${name}`);
   TILE_PROVIDER = TILE_PROVIDERS[name];
+  CURRENT_PROVIDER_NAME = name;
   CURRENT_ATTRIBUTION = TILE_ATTRIBUTION[name] || TILE_ATTRIBUTION.carto_light;
   // A different provider means different tiles, so drop the cached ones.
   clearTileCache();
