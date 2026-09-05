@@ -81,10 +81,7 @@ let overlayImage = null;
   document.getElementById('createBtn')?.addEventListener('click', onCreateMP4);
 
   // Wire privacy consent
-  document.getElementById('privacyConsent')?.addEventListener('change', () => {
-    const btn = document.getElementById('createBtn');
-    if (btn) btn.disabled = !document.getElementById('privacyConsent').checked;
-  });
+  document.getElementById('privacyConsent')?.addEventListener('change', refreshActionsEnabled);
 
   // Wire date toggle
   document.getElementById('exactDates')?.addEventListener('change', () => {
@@ -287,6 +284,7 @@ function recomputeSelection() {
   const distM = totalDistanceMetres(filtered);
   const { distanceUnit } = controls.readSettings();
   controls.updateStats(count, distM, distanceUnit);
+  refreshActionsEnabled();
 
   // Surprise: how many times has this journey circled the Earth?
   // Earth's circumference is 40075 km; show the banner only at 1+ full laps.
@@ -376,10 +374,27 @@ function formatElevation(m, unit) {
     : `${Math.round(m).toLocaleString()} m`;
 }
 
+/**
+ * Enable Preview/Create only when there are at least 2 points to render (and,
+ * for Create, the privacy consent is checked). Prevents the "zero frames" case.
+ */
+function refreshActionsEnabled() {
+  const n = loadedPoints ? loadedPoints.length : 0;
+  const consent = document.getElementById('privacyConsent')?.checked;
+  const previewBtn = document.getElementById('previewBtn');
+  const createBtn = document.getElementById('createBtn');
+  if (previewBtn) previewBtn.disabled = n < 2;
+  if (createBtn) createBtn.disabled = n < 2 || !consent;
+}
+
 // ── Preview ───────────────────────────────────────────────────────────────────
 
 async function onPreview() {
-  if (!loadedPoints) return;
+  if (!loadedPoints || loadedPoints.length < 2) {
+    showError((window.i18nText && window.i18nText('err.nopoints')) ||
+      'No points to render. Widen the date or time-of-day range, or pick another activity.');
+    return;
+  }
   const mapEl = document.getElementById('mapPreview');
   if (!mapEl) return;
 
@@ -431,7 +446,13 @@ async function onPreview() {
 // ── Encode ────────────────────────────────────────────────────────────────────
 
 async function onCreateMP4() {
-  if (!loadedPoints) return;
+  // An empty array is truthy, so check the length: a date / time-of-day filter
+  // can leave nothing to render, which would otherwise fail deep in the encoder.
+  if (!loadedPoints || loadedPoints.length < 2) {
+    showError((window.i18nText && window.i18nText('err.nopoints')) ||
+      'No points to render. Widen the date or time-of-day range, or pick another activity.');
+    return;
+  }
 
   progress.reset();
 
